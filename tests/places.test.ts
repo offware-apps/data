@@ -50,7 +50,7 @@ describe("Wikidata results", () => {
   it("keeps smaller towns in Europe than elsewhere", () => {
     expect(minPopulation("FR")).toBe(5000);
     expect(minPopulation("JP")).toBe(15000);
-    expect(citiesQuery("JP")).toContain("?pop >= 15000");
+    expect(citiesQuery("JP")).toContain("?p0 >= 15000");
   });
 
   it("builds queries for a country and a batch of cities", () => {
