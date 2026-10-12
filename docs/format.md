@@ -93,7 +93,7 @@ have an article on it, to keep the best known when a client needs fewer:
 }
 ```
 
-Open mainline railway stations with coordinates and a UIC code or a Wikipedia article.
+Open mainline railway stations with coordinates and a UIC code or a Wikipedia (or other Wikimedia) page.
 `id` is the station's Wikidata item.
 
 ## `places/pack.json`
