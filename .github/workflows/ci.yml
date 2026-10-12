@@ -34,6 +34,8 @@ jobs:
       - name: Fetch four countries from Wikidata
         # Great Britain checks large cities (London's boroughs) against the time limit.
         run: npm run fetch -- LU MC CH GB
+        env:
+          FETCH_TRIES: "1"
       - run: npm run build
       - name: Sizes
         run: |

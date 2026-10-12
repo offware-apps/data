@@ -27,7 +27,8 @@ const OUT = resolve("data/raw/wikidata.json");
 const BATCH = 20;
 /** A failed batch of sights is retried this many cities at a time. */
 const SMALL_BATCH = 4;
-const TRIES = 3;
+/** FETCH_TRIES=1 makes a test run fail fast. */
+const TRIES = Number(process.env.FETCH_TRIES) || 3;
 const PAUSE_MS = 1_000;
 /** Tiny territories time out now and then; more than this many missing countries fails the run. */
 const MAX_MISSING_COUNTRIES = 2;

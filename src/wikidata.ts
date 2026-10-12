@@ -86,21 +86,23 @@ export function parseCountries(result: unknown): string[] {
 
 /**
  * Towns and cities of one country with at least minPopulation() people. The towns are
- * found first, then their details read once each: a town with several populations,
- * coordinates and labels would otherwise multiply into hundreds of rows, which is what
- * made large countries time out.
+ * found first, in a named subquery the query service always runs before the rest, then
+ * their details read once each: a town with several populations, coordinates and labels
+ * would otherwise multiply into hundreds of rows, which made large countries time out.
  */
 export function citiesQuery(countryIso2: string): string {
   return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
-       (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names) WHERE {
-  {
-    SELECT DISTINCT ?city WHERE {
-      ?country wdt:P297 "${countryIso2}" .
-      ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
-      FILTER(?p0 >= ${minPopulation(countryIso2)})
-      ?cls wdt:P279* wd:Q486972 .
-    }
+       (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
+WITH {
+  SELECT DISTINCT ?city WHERE {
+    ?country wdt:P297 "${countryIso2}" .
+    ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
+    FILTER(?p0 >= ${minPopulation(countryIso2)})
+    ?cls wdt:P279* wd:Q486972 .
   }
+} AS %towns
+WHERE {
+  INCLUDE %towns .
   ?city wdt:P1082 ?p ; wdt:P625 ?c .
   OPTIONAL { ?city rdfs:label ?alt . FILTER(LANG(?alt) IN (${LANGS.map((l) => `"${l}"`).join(", ")})) }
   OPTIONAL { ?v schema:about ?city ; schema:isPartOf <https://en.wikivoyage.org/> . }
