@@ -31,8 +31,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Fetch two small countries and every station from Wikidata
-        run: npm run fetch -- LU MC
+      - name: Fetch three countries from Wikidata
+        run: npm run fetch -- LU MC CH
       - run: npm run build
       - name: Sizes
         run: |

@@ -242,29 +242,25 @@ export function parseSights(result: unknown): Record<string, Sight[]> {
 
 // ---------------------------------------------------------------- railway stations
 
-/** Rows per page of the stations query. */
-export const STATION_PAGE = 5000;
-
 /**
- * Mainline railway stations worldwide that are still open, with coordinates and either
- * a UIC code or a Wikipedia article (which leaves out most tram and metro stops).
+ * Mainline railway stations of one country that are still open, with coordinates and
+ * either a UIC code or a page on a Wikimedia project (which leaves out most tram and metro
+ * stops). One small query per country stays well inside the query service's time limit.
  */
-export function stationsQuery(limit: number, offset: number): string {
+export function stationsQuery(countryIso2: string): string {
   return `SELECT ?station ?stationLabel ?iso2 ?coord WHERE {
-  ?station wdt:P31 wd:Q55488 ; wdt:P625 ?coord ; wdt:P17 ?country .
-  ?country wdt:P297 ?iso2 .
+  ?country wdt:P297 "${countryIso2}" .
+  BIND("${countryIso2}" AS ?iso2)
+  ?station wdt:P31 wd:Q55488 ; wdt:P17 ?country ; wdt:P625 ?coord ; wikibase:sitelinks ?links .
   FILTER NOT EXISTS { ?station wdt:P576 ?closed . }
   FILTER NOT EXISTS { ?station wdt:P5817 wd:Q56556915 . }
   FILTER NOT EXISTS { ?station wdt:P5817 wd:Q45382883 . }
-  FILTER( EXISTS { ?station wdt:P954 ?uic . }
-          || EXISTS { ?article schema:about ?station ; schema:isPartOf ?wiki . FILTER(CONTAINS(STR(?wiki), "wikipedia.org")) } )
+  FILTER(?links > 0 || EXISTS { ?station wdt:P954 ?uic . })
   ${labelService}
-}
-ORDER BY ?station
-LIMIT ${limit} OFFSET ${offset}`;
+}`;
 }
 
-/** Stations from one page of stationsQuery; a station in two countries keeps the first. */
+/** Stations from stationsQuery; a station listed twice keeps the first. */
 export function parseStations(result: unknown): Station[] {
   const out: Station[] = [];
   const seen = new Set<string>();

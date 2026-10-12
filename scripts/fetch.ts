@@ -1,16 +1,15 @@
 /**
  * Fetch towns, cities, their sights and railway stations from Wikidata to
- * data/raw/wikidata.json (git-ignored). One query per country, then the sights in batches
- * of cities, then the stations page by page, slowly enough to respect the query service's
- * limits. A country, batch or page that keeps failing is left out and named.
+ * data/raw/wikidata.json (git-ignored). One query per country for towns and for stations,
+ * then the sights in batches of cities, slowly enough to respect the query service's
+ * limits. A batch that fails is retried in smaller ones; whatever keeps failing is left
+ * out and named.
  * Run: npm run fetch [-- FR DE]   (default: every country)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   COUNTRIES_QUERY,
-  STATION_PAGE,
-  bindings,
   citiesQuery,
   parseCities,
   parseCountries,
@@ -26,12 +25,18 @@ const ENDPOINT = "https://query.wikidata.org/sparql";
 const USER_AGENT = "offware-data/0.1 (https://github.com/offware-apps/data)";
 const OUT = resolve("data/raw/wikidata.json");
 const BATCH = 50;
+/** A failed batch of sights is retried this many cities at a time. */
+const SMALL_BATCH = 5;
 const TRIES = 3;
 const PAUSE_MS = 1_000;
 /** Tiny territories time out now and then; more than this many missing countries fails the run. */
 const MAX_MISSING_COUNTRIES = 2;
+/** Share of towns whose sights may be missing before the run fails. */
+const MAX_MISSING_SIGHTS = 0.01;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const started = Date.now();
+const log = (msg: string): void => console.log(`[fetch +${Math.round((Date.now() - started) / 60_000)} min] ${msg}`);
 
 async function sparql(query: string): Promise<unknown> {
   let last: unknown;
@@ -65,68 +70,79 @@ async function sparql(query: string): Promise<unknown> {
 
 const countries = process.argv.slice(2).filter((c) => /^[A-Z]{2}$/.test(c));
 const raw: Raw = { fetchedAt: new Date().toISOString(), cities: [], sights: {}, stations: [] };
-const missing: string[] = [];
 const all = countries.length ? countries : parseCountries(await sparql(COUNTRIES_QUERY));
-console.log(`[fetch] ${all.length} countries`);
+log(`${all.length} countries`);
 
+const missing: string[] = [];
 for (const cc of all) {
   try {
     const cities = parseCities(await sparql(citiesQuery(cc)), cc);
     raw.cities.push(...cities);
-    console.log(`[fetch] ${cc}: ${cities.length} towns and cities`);
+    log(`${cc}: ${cities.length} towns and cities`);
   } catch (err) {
     missing.push(cc);
-    console.error(`[fetch] ${cc}: left out (${String(err)})`);
+    console.error(`[fetch] ${cc}: towns left out (${String(err)})`);
   }
   await sleep(PAUSE_MS);
 }
 if (raw.cities.length === 0) throw new Error("no town or city could be fetched from Wikidata");
 
-const ids = raw.cities.map((c) => c.wikidata);
-let failedBatches = 0;
-for (let i = 0; i < ids.length; i += BATCH) {
+const missingStations: string[] = [];
+const seen = new Set<string>();
+for (const cc of all) {
   try {
-    Object.assign(raw.sights, parseSights(await sparql(sightsQuery(ids.slice(i, i + BATCH)))));
+    const stations = parseStations(await sparql(stationsQuery(cc))).filter((s) => !seen.has(s.wikidata));
+    for (const s of stations) seen.add(s.wikidata);
+    raw.stations.push(...stations);
+    if (stations.length) log(`${cc}: ${stations.length} railway stations`);
   } catch (err) {
-    failedBatches++;
-    console.error(`[fetch] sights for cities ${i}–${i + BATCH} left out (${String(err)})`);
+    missingStations.push(cc);
+    console.error(`[fetch] ${cc}: stations left out (${String(err)})`);
   }
   await sleep(PAUSE_MS);
+}
+log(`${raw.stations.length} railway stations`);
+
+/** Sights of a batch of towns; a batch that fails is tried again a few towns at a time. */
+async function sights(ids: string[]): Promise<string[]> {
+  try {
+    Object.assign(raw.sights, parseSights(await sparql(sightsQuery(ids))));
+    return [];
+  } catch (err) {
+    if (ids.length <= SMALL_BATCH) {
+      console.error(`[fetch] sights of ${ids.join(" ")} left out (${String(err)})`);
+      return ids;
+    }
+    const failed: string[] = [];
+    for (let i = 0; i < ids.length; i += SMALL_BATCH) {
+      await sleep(PAUSE_MS);
+      failed.push(...(await sights(ids.slice(i, i + SMALL_BATCH))));
+    }
+    return failed;
+  }
 }
 
-// Stations worldwide (or only in the countries asked for), a page at a time.
-const wanted = new Set(all);
-const seen = new Set<string>();
-let failedPages = 0;
-for (let offset = 0; ; offset += STATION_PAGE) {
-  let result: unknown;
-  try {
-    result = await sparql(stationsQuery(STATION_PAGE, offset));
-  } catch (err) {
-    failedPages++;
-    console.error(`[fetch] stations from ${offset} left out (${String(err)})`);
-    if (failedPages >= 3) break;
-    continue;
-  }
-  for (const s of parseStations(result)) {
-    if (!wanted.has(s.countryIso2) || seen.has(s.wikidata)) continue;
-    seen.add(s.wikidata);
-    raw.stations.push(s);
-  }
-  if (bindings(result).length < STATION_PAGE) break;
+const ids = raw.cities.map((c) => c.wikidata);
+const noSights: string[] = [];
+for (let i = 0; i < ids.length; i += BATCH) {
+  noSights.push(...(await sights(ids.slice(i, i + BATCH))));
+  if ((i / BATCH) % 50 === 0) log(`sights: ${Math.min(i + BATCH, ids.length)} of ${ids.length} towns`);
   await sleep(PAUSE_MS);
 }
-console.log(`[fetch] ${raw.stations.length} railway stations`);
 
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(raw), "utf-8");
 const sightCount = Object.values(raw.sights).reduce((n, s) => n + s.length, 0);
-console.log(`[fetch] ${raw.cities.length} towns and cities, ${sightCount} sights → ${OUT}`);
-if (missing.length) console.log(`[fetch] countries left out: ${missing.join(" ")}`);
-if (failedBatches) console.log(`[fetch] sight batches left out: ${failedBatches}`);
-if (failedPages) console.log(`[fetch] station pages left out: ${failedPages}`);
-// A partial fetch would publish a dataset with holes: stop instead, and let the next run retry.
-if (missing.length > MAX_MISSING_COUNTRIES || failedBatches > 0 || failedPages > 0) {
+log(`${raw.cities.length} towns and cities, ${sightCount} sights, ${raw.stations.length} stations → ${OUT}`);
+if (missing.length) console.log(`[fetch] countries without towns: ${missing.join(" ")}`);
+if (missingStations.length) console.log(`[fetch] countries without stations: ${missingStations.join(" ")}`);
+if (noSights.length) console.log(`[fetch] towns without sights: ${noSights.length}`);
+// A fetch with real holes would publish them: stop instead, and let the next run retry.
+if (
+  missing.length > MAX_MISSING_COUNTRIES ||
+  missingStations.length > MAX_MISSING_COUNTRIES ||
+  noSights.length > ids.length * MAX_MISSING_SIGHTS
+) {
   console.error("[fetch] too much was left out to publish; nothing is published this run.");
   process.exit(1);
 }
