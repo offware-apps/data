@@ -1,5 +1,5 @@
 /**
- * Build the static dataset into public/v1/ from data/raw/wikidata.json (see `npm run fetch`),
+ * Build every dataset into public/v1/ from data/raw/wikidata.json (see `npm run fetch`),
  * or from the file given as the first argument.
  * Run: npm run build [-- <wikidata.json>]
  */

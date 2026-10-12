@@ -1,15 +1,16 @@
+import { buildCatalog } from "./catalog";
 import type { City, Raw, Sight, Station } from "./wikidata";
 
 /**
- * The published dataset: plain JSON files, so it can be hosted for free and read by any
- * app. Layout (all under /v1/):
+ * The places and stations datasets: plain JSON files, so they can be hosted for free and
+ * read by any app. Layout (all under /v1/):
  *
- *   index.json          every town and city, with the names it goes by
- *   places/<id>.json    one town or city: links to free guides, and its sights
- *   landmarks.json      every sight but UNESCO sites, in the shape Postcards' landmarks use
- *   stations.json       railway stations worldwide, in the shape Postcards' stations use
- *   pack.json           the sights as a Postcards community data pack
- *   sources.json        where every value comes from, and under which licence
+ *   places/index.json        every town and city, with the names it goes by
+ *   places/<id>.json         one town or city: links to free guides, and its sights
+ *   places/landmarks.json    every sight but UNESCO sites, in the shape Postcards' landmarks use
+ *   places/pack.json         the sights as a Postcards community data pack
+ *   stations/railways.json   railway stations worldwide, in the shape Postcards' stations use
+ *   sources.json             where every value comes from, and under which licence
  *
  * Every record names its source: a Wikidata item, which is also where an error is fixed.
  * See docs/format.md.
@@ -113,7 +114,8 @@ export function slug(name: string): string {
  */
 export function placeIds(cities: City[]): Map<string, string> {
   const ids = new Map<string, string>();
-  const used = new Set<string>();
+  // The dataset's own files share the folder: a town can't take their names.
+  const used = new Set<string>(RESERVED_IDS);
   const order = [...cities].sort((a, b) => b.population - a.population || a.wikidata.localeCompare(b.wikidata));
   for (const c of order) {
     const base = slug(c.name) || c.wikidata.toLowerCase();
@@ -125,6 +127,9 @@ export function placeIds(cities: City[]): Map<string, string> {
   }
   return ids;
 }
+
+/** File names in v1/places/ that aren't a place. */
+export const RESERVED_IDS = ["index", "landmarks", "pack"];
 
 /** The most places a Postcards data pack may hold. */
 export const PACK_MAX = 50_000;
@@ -201,16 +206,17 @@ export function buildFiles(raw: Raw, updatedAt: string): { path: string; body: u
   }
   landmarks.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
 
-  files.push({ path: "v1/index.json", body: index });
+  files.push({ path: "v1/places/index.json", body: index });
   files.push({ path: "v1/sources.json", body: { version: 1, updatedAt, sources: SOURCES } });
-  files.push({ path: "v1/stations.json", body: stationsFile(raw.stations ?? [], updatedAt) });
-  files.push({ path: "v1/landmarks.json", body: landmarks });
+  files.push({ path: "v1/catalog.json", body: buildCatalog(updatedAt, { places: cities.length, stations: raw.stations?.length ?? 0 }) });
+  files.push({ path: "v1/stations/railways.json", body: stationsFile(raw.stations ?? [], updatedAt) });
+  files.push({ path: "v1/places/landmarks.json", body: landmarks });
   files.push({
-    path: "v1/pack.json",
+    path: "v1/places/pack.json",
     body: {
       format: "postcards-pack",
       version: 1,
-      name: "Sights of Europe",
+      name: "Sights worldwide",
       description: "Museums, monuments, castles, palaces and parks in towns and cities worldwide. UNESCO World Heritage sites are left out, as Postcards lists them from UNESCO.",
       source: "https://www.wikidata.org",
       license: LICENSE,

@@ -5,7 +5,26 @@ places (about 1 m). Countries are ISO 3166-1 alpha-2 codes. Every record carries
 Wikidata id; `source` is the URL of that Wikidata item, where its values come from and
 where an error can be corrected.
 
-## `index.json`
+## `catalog.json`
+
+Every dataset published here. `files` paths are relative to `baseUrl`; `sources` are ids
+in `sources.json`.
+
+```json
+{
+  "version": 1,
+  "baseUrl": "https://offware-apps.github.io/data/v1",
+  "updatedAt": "2026-10-12T03:00:00.000Z",
+  "datasets": [
+    { "id": "places", "name": "Towns, cities and sights", "description": "…", "license": "CC0-1.0",
+      "sources": ["wikidata", "wikivoyage", "wikipedia"], "schedule": "weekly",
+      "usedBy": ["postcards", "train-api"], "updatedAt": "2026-10-12T03:00:00.000Z", "records": 31250,
+      "files": [{ "path": "places/index.json", "content": "every town and city, with the names it goes by" }] }
+  ]
+}
+```
+
+## `places/index.json`
 
 ```json
 {
@@ -26,7 +45,8 @@ Portuguese, Catalan, Swedish, Norwegian, Danish, Finnish, Polish, Czech and Hung
 matching names written in another language (a station called "Bruxelles-Midi", say).
 
 `id` is stable: the largest place of a name keeps the plain slug; a smaller namesake gets
-its country (`valence-fr`), then a number.
+its country (`valence-fr`), then a number. `index`, `landmarks` and `pack` are never a
+place's id, since those files share the folder.
 
 ## `places/<id>.json`
 
@@ -53,7 +73,7 @@ Wikipedia editions have an article). `category` is one of museum, cathedral, chu
 castle, palace, monument, park, garden, square, theatre, bridge or heritage site. Links
 appear only when Wikidata has them.
 
-## `landmarks.json`
+## `places/landmarks.json`
 
 Every sight except UNESCO sites, once each. `sitelinks` is how many Wikipedia editions
 have an article on it, to keep the best known when a client needs fewer:
@@ -62,7 +82,7 @@ have an article on it, to keep the best known when a client needs fewer:
 [{ "id": "wd-Q243", "name": "Eiffel Tower", "countryIso2": "FR", "lat": 48.8584, "lon": 2.2945, "category": "monument", "sitelinks": 180 }]
 ```
 
-## `stations.json`
+## `stations/railways.json`
 
 ```json
 {
@@ -76,7 +96,7 @@ have an article on it, to keep the best known when a client needs fewer:
 Open mainline railway stations with coordinates and a UIC code or a Wikipedia article.
 `id` is the station's Wikidata item.
 
-## `pack.json`
+## `places/pack.json`
 
 The landmarks as a Postcards community data pack (`"format": "postcards-pack"`), at most
 50,000 of them, the best known kept.

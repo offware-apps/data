@@ -1,5 +1,5 @@
 {
-  "name": "places",
+  "name": "data",
   "version": "0.1.0",
   "private": true,
   "description": "Open dataset of European towns and cities, their sights and free guides, from Wikidata, served as static JSON.",

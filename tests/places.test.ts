@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PACK_MAX, buildFiles, placeIds, slug, type Place, type PlacesIndex } from "../src/places";
+import type { Catalog } from "../src/catalog";
 import { citiesQuery, minPopulation, parseCities, parseCountries, parseSights, parseStations, point, sightsQuery, type Raw } from "../src/wikidata";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf-8"));
@@ -72,7 +73,7 @@ describe("dataset files", () => {
   it("writes an index, a file per place, the landmarks and a Postcards pack", () => {
     const files = buildFiles(raw(), "2026-10-12T00:00:00.000Z");
     const byPath = new Map(files.map((f) => [f.path, f.body]));
-    const index = byPath.get("v1/index.json") as PlacesIndex;
+    const index = byPath.get("v1/places/index.json") as PlacesIndex;
     expect(index.license).toBe("CC0-1.0");
     expect(index.places.map((p) => p.id)).toEqual(["paris", "valencia", "lyon", "valence"]);
 
@@ -86,22 +87,34 @@ describe("dataset files", () => {
     expect(paris.sights[0]).not.toHaveProperty("sitelinks");
     expect(paris.sights[0]!.source).toBe("https://www.wikidata.org/wiki/Q2981");
 
-    const landmarks = byPath.get("v1/landmarks.json") as { id: string; countryIso2: string; category: string }[];
+    const landmarks = byPath.get("v1/places/landmarks.json") as { id: string; countryIso2: string; category: string }[];
     // UNESCO sites (Notre-Dame, Old Lyon) are left to Postcards' own UNESCO list.
     expect(landmarks.map((l) => l.id)).toEqual(["wd-Q243", "wd-Q19675"]);
     expect(landmarks[0]).toEqual({ id: "wd-Q243", name: "Eiffel Tower", countryIso2: "FR", lat: 48.8584, lon: 2.2945, category: "monument", sitelinks: 180 });
 
-    const pack = byPath.get("v1/pack.json") as { format: string; license: string; places: unknown[] };
+    const pack = byPath.get("v1/places/pack.json") as { format: string; license: string; places: unknown[] };
     expect(pack.format).toBe("postcards-pack");
     expect(pack.license).toBe("CC0-1.0");
     expect(pack.places).toHaveLength(2);
     expect(PACK_MAX).toBe(50_000);
 
-    const stations = byPath.get("v1/stations.json") as { _source: { license: string; coverage: string }; stations: { id: string; subdivisionId: null }[] };
+    const stations = byPath.get("v1/stations/railways.json") as { _source: { license: string; coverage: string }; stations: { id: string; subdivisionId: null }[] };
     expect(stations._source).toMatchObject({ license: "CC0-1.0", coverage: "worldwide" });
     expect(stations.stations.map((s) => s.id)).toEqual(["Q745942", "Q801124"]);
 
     const sources = byPath.get("v1/sources.json") as { sources: { id: string; license: string }[] };
     expect(sources.sources.map((s) => `${s.id} ${s.license}`)).toEqual(["wikidata CC0-1.0", "wikivoyage CC-BY-SA-4.0", "wikipedia CC-BY-SA-4.0"]);
+
+    const catalog = byPath.get("v1/catalog.json") as Catalog;
+    expect(catalog.baseUrl).toBe("https://offware-apps.github.io/data/v1");
+    expect(catalog.datasets.map((d) => `${d.id} ${d.records}`)).toEqual(["places 4", "stations 2"]);
+    // Every source a dataset names is listed with its licence.
+    const listed = new Set(sources.sources.map((s) => s.id));
+    for (const d of catalog.datasets) for (const s of d.sources) expect(listed.has(s)).toBe(true);
+  });
+
+  it("never gives a town the name of one of the dataset's files", () => {
+    const ids = placeIds([{ wikidata: "Q9", name: "Index", names: [], countryIso2: "US", population: 1000, lat: 0, lon: 0 }]);
+    expect(ids.get("Q9")).toBe("index-us");
   });
 });

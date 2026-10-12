@@ -36,6 +36,6 @@ jobs:
       - run: npm run build
       - name: Sizes
         run: |
-          du -sh public/v1 public/v1/*.json
-          jq '.places | length' public/v1/index.json
-          jq '.stations | length' public/v1/stations.json
+          du -sh public/v1 public/v1/*/*.json
+          jq '.places | length' public/v1/places/index.json
+          jq '.stations | length' public/v1/stations/railways.json

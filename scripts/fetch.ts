@@ -23,7 +23,7 @@ import {
 
 const ENDPOINT = "https://query.wikidata.org/sparql";
 // Wikidata asks every client to name itself and give a contact.
-const USER_AGENT = "offware-places/0.1 (https://github.com/offware-apps/places)";
+const USER_AGENT = "offware-data/0.1 (https://github.com/offware-apps/data)";
 const OUT = resolve("data/raw/wikidata.json");
 const BATCH = 50;
 const TRIES = 3;
