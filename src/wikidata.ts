@@ -266,17 +266,25 @@ export function parseSights(result: unknown): Record<string, Sight[]> {
 /**
  * Mainline railway stations of one country that are still open, with coordinates and
  * either a UIC code or a page on a Wikimedia project (which leaves out most tram and metro
- * stops). One small query per country stays well inside the query service's time limit.
+ * stops). One query per country, with the labels read only once the stations are found,
+ * stays inside the query service's time limit.
  */
 export function stationsQuery(countryIso2: string): string {
-  return `SELECT ?station ?stationLabel ?iso2 ?coord WHERE {
-  ?country wdt:P297 "${countryIso2}" .
+  return `SELECT ?station ?stationLabel ?iso2 ?coord
+WITH {
+  SELECT ?station (SAMPLE(?c) AS ?coord) WHERE {
+    ?country wdt:P297 "${countryIso2}" .
+    ?station wdt:P31 wd:Q55488 ; wdt:P17 ?country ; wdt:P625 ?c ; wikibase:sitelinks ?links .
+    FILTER NOT EXISTS { ?station wdt:P576 ?closed . }
+    FILTER NOT EXISTS { ?station wdt:P5817 wd:Q56556915 . }
+    FILTER NOT EXISTS { ?station wdt:P5817 wd:Q45382883 . }
+    FILTER(?links > 0 || EXISTS { ?station wdt:P954 ?uic . })
+  }
+  GROUP BY ?station
+} AS %stations
+WHERE {
+  INCLUDE %stations .
   BIND("${countryIso2}" AS ?iso2)
-  ?station wdt:P31 wd:Q55488 ; wdt:P17 ?country ; wdt:P625 ?coord ; wikibase:sitelinks ?links .
-  FILTER NOT EXISTS { ?station wdt:P576 ?closed . }
-  FILTER NOT EXISTS { ?station wdt:P5817 wd:Q56556915 . }
-  FILTER NOT EXISTS { ?station wdt:P5817 wd:Q45382883 . }
-  FILTER(?links > 0 || EXISTS { ?station wdt:P954 ?uic . })
   ${labelService}
 }`;
 }
