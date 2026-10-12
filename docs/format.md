@@ -55,10 +55,11 @@ appear only when Wikidata has them.
 
 ## `landmarks.json`
 
-Every sight except UNESCO sites, once each:
+Every sight except UNESCO sites, once each. `sitelinks` is how many Wikipedia editions
+have an article on it, to keep the best known when a client needs fewer:
 
 ```json
-[{ "id": "wd-Q243", "name": "Eiffel Tower", "countryIso2": "FR", "lat": 48.8584, "lon": 2.2945, "category": "monument" }]
+[{ "id": "wd-Q243", "name": "Eiffel Tower", "countryIso2": "FR", "lat": 48.8584, "lon": 2.2945, "category": "monument", "sitelinks": 180 }]
 ```
 
 ## `stations.json`

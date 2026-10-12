@@ -89,7 +89,7 @@ describe("dataset files", () => {
     const landmarks = byPath.get("v1/landmarks.json") as { id: string; countryIso2: string; category: string }[];
     // UNESCO sites (Notre-Dame, Old Lyon) are left to Postcards' own UNESCO list.
     expect(landmarks.map((l) => l.id)).toEqual(["wd-Q243", "wd-Q19675"]);
-    expect(landmarks[0]).toEqual({ id: "wd-Q243", name: "Eiffel Tower", countryIso2: "FR", lat: 48.8584, lon: 2.2945, category: "monument" });
+    expect(landmarks[0]).toEqual({ id: "wd-Q243", name: "Eiffel Tower", countryIso2: "FR", lat: 48.8584, lon: 2.2945, category: "monument", sitelinks: 180 });
 
     const pack = byPath.get("v1/pack.json") as { format: string; license: string; places: unknown[] };
     expect(pack.format).toBe("postcards-pack");

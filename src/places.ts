@@ -158,8 +158,7 @@ export function buildFiles(raw: Raw, updatedAt: string): { path: string; body: u
   const index: PlacesIndex = { version: 1, updatedAt, source: SOURCE, license: LICENSE, attribution: ATTRIBUTION, places: [] };
   // A sight inside two cities' areas is listed once, under the first (largest) city.
   const listed = new Set<string>();
-  const landmarks: { id: string; name: string; countryIso2: string; lat: number; lon: number; category: string }[] = [];
-  const rank = new Map<string, number>();
+  const landmarks: { id: string; name: string; countryIso2: string; lat: number; lon: number; category: string; sitelinks: number }[] = [];
 
   for (const c of cities) {
     const id = ids.get(c.wikidata)!;
@@ -196,9 +195,8 @@ export function buildFiles(raw: Raw, updatedAt: string): { path: string; body: u
       if (listed.has(s.wikidata)) continue;
       // UNESCO sites stay out of landmarks.json: Postcards lists them from UNESCO's own list.
       if (s.unesco) continue;
-      rank.set(`wd-${s.wikidata}`, s.sitelinks);
       listed.add(s.wikidata);
-      landmarks.push({ id: `wd-${s.wikidata}`, name: s.name, countryIso2: c.countryIso2, lat: s.lat, lon: s.lon, category: s.category });
+      landmarks.push({ id: `wd-${s.wikidata}`, name: s.name, countryIso2: c.countryIso2, lat: s.lat, lon: s.lon, category: s.category, sitelinks: s.sitelinks });
     }
   }
   landmarks.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
@@ -219,7 +217,7 @@ export function buildFiles(raw: Raw, updatedAt: string): { path: string; body: u
       attribution: ATTRIBUTION,
       // Postcards takes at most PACK_MAX places of 120 characters a name: the best known are kept.
       places: [...landmarks]
-        .sort((a, b) => (rank.get(b.id) ?? 0) - (rank.get(a.id) ?? 0) || a.id.localeCompare(b.id))
+        .sort((a, b) => b.sitelinks - a.sitelinks || a.id.localeCompare(b.id))
         .slice(0, PACK_MAX)
         .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
         .map((l) => ({ id: l.id, name: l.name.slice(0, 120), lat: l.lat, lon: l.lon, countryIso2: l.countryIso2 })),
