@@ -1,0 +1,35 @@
+{
+ "head": {
+  "vars": []
+ },
+ "results": {
+  "bindings": [
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q8818"
+    },
+    "cityLabel": {
+     "type": "literal",
+     "value": "Valencia"
+    },
+    "pop": {
+     "type": "literal",
+     "value": "807693"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(-0.375 39.47)"
+    },
+    "voy": {
+     "type": "literal",
+     "value": "https://en.wikivoyage.org/wiki/Valencia"
+    },
+    "names": {
+     "type": "literal",
+     "value": "Valencia|València|Valence"
+    }
+   }
+  ]
+ }
+}

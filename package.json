@@ -1,0 +1,21 @@
+{
+  "name": "places",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open dataset of European towns and cities, their sights and free guides, from Wikidata, served as static JSON.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "fetch": "tsx scripts/fetch.ts",
+    "build": "tsx scripts/build.ts",
+    "check": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

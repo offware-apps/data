@@ -1,0 +1,50 @@
+# places
+
+Open dataset of towns and cities worldwide, with their sights, links to free travel
+guides, and railway stations. Built weekly from [Wikidata](https://www.wikidata.org) and
+served as static JSON on GitHub Pages, with no server, no key and no cost.
+
+It is shared by the Offware apps: [train-api](https://github.com/offware-apps/train-api)
+links its stations to these places, and [Postcards](https://github.com/offware-apps/Postcards)
+reads its sights and stations.
+
+Live at <https://offware-apps.github.io/places/v1/index.json> once Pages is on
+(Settings → Pages → Source: GitHub Actions).
+
+## What's in it
+
+| File | What it holds |
+| --- | --- |
+| `v1/index.json` | Every town and city: id, names in 15 languages, country, population, coordinates |
+| `v1/places/<id>.json` | One town or city: links to Wikivoyage, Wikipedia and its website, and up to 15 sights |
+| `v1/landmarks.json` | Every sight except UNESCO World Heritage sites, in Postcards' landmark shape |
+| `v1/stations.json` | Open railway stations worldwide, in Postcards' station shape |
+| `v1/pack.json` | The sights as a Postcards community data pack |
+| `v1/sources.json` | Every source and its licence |
+
+Towns are kept from 5,000 people in Europe and from 15,000 elsewhere. The format is in
+[docs/format.md](docs/format.md).
+
+## Sources and licences
+
+- **Wikidata (CC0).** Every name, population, coordinate, category and UNESCO flag comes
+  from Wikidata. CC0 asks for nothing, but every record still names its source: its
+  `source` field is its Wikidata item.
+- **Wikivoyage and Wikipedia (CC BY-SA 4.0).** Only links to their articles are
+  published. No article text is copied, so nothing here is under their licence.
+
+**Found an error?** Fix it at the source. Each record's `source` link opens its
+Wikidata item, which anyone can edit, and the fix reaches this dataset on the next weekly
+build. Corrections are never made in this repository.
+
+## Develop
+
+```sh
+npm ci
+npm run check                               # typecheck + tests
+npm run build -- tests/fixtures/raw.json    # build from the fixture
+npm run fetch -- LU MC                      # fetch two countries (needs query.wikidata.org)
+npm run build
+```
+
+Code: AGPL-3.0. Data: CC0 1.0, from Wikidata.

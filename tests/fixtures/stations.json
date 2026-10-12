@@ -1,0 +1,81 @@
+{
+ "head": {
+  "vars": []
+ },
+ "results": {
+  "bindings": [
+   {
+    "station": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q745942"
+    },
+    "stationLabel": {
+     "type": "literal",
+     "value": "Paris Gare de Lyon"
+    },
+    "iso2": {
+     "type": "literal",
+     "value": "FR"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(2.3733 48.8443)"
+    }
+   },
+   {
+    "station": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q745942"
+    },
+    "stationLabel": {
+     "type": "literal",
+     "value": "Paris Gare de Lyon"
+    },
+    "iso2": {
+     "type": "literal",
+     "value": "CH"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(2.3733 48.8443)"
+    }
+   },
+   {
+    "station": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q801124"
+    },
+    "stationLabel": {
+     "type": "literal",
+     "value": "Tokyo Station"
+    },
+    "iso2": {
+     "type": "literal",
+     "value": "jp"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(139.7671 35.6812)"
+    }
+   },
+   {
+    "station": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q5"
+    },
+    "stationLabel": {
+     "type": "literal",
+     "value": "Q5"
+    },
+    "iso2": {
+     "type": "literal",
+     "value": "FR"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(1 1)"
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,117 @@
+{
+ "fetchedAt": "2026-10-12T00:00:00.000Z",
+ "cities": [
+  {
+   "wikidata": "Q90",
+   "name": "Paris",
+   "names": [
+    "Paris",
+    "Parigi",
+    "Parijs"
+   ],
+   "countryIso2": "FR",
+   "population": 2102650,
+   "lat": 48.85694,
+   "lon": 2.35139,
+   "wikivoyage": "https://en.wikivoyage.org/wiki/Paris",
+   "wikipedia": "https://en.wikipedia.org/wiki/Paris",
+   "website": "https://www.paris.fr/"
+  },
+  {
+   "wikidata": "Q456",
+   "name": "Lyon",
+   "names": [
+    "Lyon",
+    "Lione"
+   ],
+   "countryIso2": "FR",
+   "population": 522250,
+   "lat": 45.758,
+   "lon": 4.835,
+   "wikivoyage": "https://en.wikivoyage.org/wiki/Lyon"
+  },
+  {
+   "wikidata": "Q161717",
+   "name": "Valence",
+   "names": [
+    "Valence",
+    "Valencia"
+   ],
+   "countryIso2": "FR",
+   "population": 64726,
+   "lat": 44.9333,
+   "lon": 4.8917
+  },
+  {
+   "wikidata": "Q8818",
+   "name": "Valencia",
+   "names": [
+    "Valencia",
+    "València",
+    "Valence"
+   ],
+   "countryIso2": "ES",
+   "population": 807693,
+   "lat": 39.47,
+   "lon": -0.375,
+   "wikivoyage": "https://en.wikivoyage.org/wiki/Valencia"
+  }
+ ],
+ "sights": {
+  "Q90": [
+   {
+    "wikidata": "Q2981",
+    "name": "Notre-Dame de Paris",
+    "category": "heritage site",
+    "lat": 48.853,
+    "lon": 2.3499,
+    "sitelinks": 120,
+    "unesco": true
+   },
+   {
+    "wikidata": "Q19675",
+    "name": "Louvre",
+    "category": "museum",
+    "lat": 48.8606,
+    "lon": 2.3376,
+    "sitelinks": 200
+   },
+   {
+    "wikidata": "Q243",
+    "name": "Eiffel Tower",
+    "category": "monument",
+    "lat": 48.8584,
+    "lon": 2.2945,
+    "sitelinks": 180,
+    "wikipedia": "https://en.wikipedia.org/wiki/Eiffel_Tower"
+   }
+  ],
+  "Q456": [
+   {
+    "wikidata": "Q1",
+    "name": "Old Lyon",
+    "category": "heritage site",
+    "lat": 45.762,
+    "lon": 4.827,
+    "sitelinks": 40,
+    "unesco": true
+   }
+  ]
+ },
+ "stations": [
+  {
+   "wikidata": "Q745942",
+   "name": "Paris Gare de Lyon",
+   "countryIso2": "FR",
+   "lat": 48.8443,
+   "lon": 2.3733
+  },
+  {
+   "wikidata": "Q801124",
+   "name": "Tokyo Station",
+   "countryIso2": "JP",
+   "lat": 35.6812,
+   "lon": 139.7671
+  }
+ ]
+}

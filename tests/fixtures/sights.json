@@ -1,0 +1,177 @@
+{
+ "head": {
+  "vars": []
+ },
+ "results": {
+  "bindings": [
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q90"
+    },
+    "item": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q243"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Eiffel Tower"
+    },
+    "category": {
+     "type": "literal",
+     "value": "monument"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(2.2945 48.8584)"
+    },
+    "links": {
+     "type": "literal",
+     "value": "180"
+    },
+    "wp": {
+     "type": "literal",
+     "value": "https://en.wikipedia.org/wiki/Eiffel_Tower"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q90"
+    },
+    "item": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q19675"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Louvre"
+    },
+    "category": {
+     "type": "literal",
+     "value": "museum"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(2.3376 48.8606)"
+    },
+    "links": {
+     "type": "literal",
+     "value": "200"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q90"
+    },
+    "item": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q2981"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Notre-Dame de Paris"
+    },
+    "category": {
+     "type": "literal",
+     "value": "cathedral"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(2.3499 48.853)"
+    },
+    "links": {
+     "type": "literal",
+     "value": "120"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q90"
+    },
+    "item": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q2981"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Notre-Dame de Paris"
+    },
+    "category": {
+     "type": "literal",
+     "value": "heritage site"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(2.3499 48.853)"
+    },
+    "links": {
+     "type": "literal",
+     "value": "120"
+    },
+    "unesco": {
+     "type": "literal",
+     "value": "600-001"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q456"
+    },
+    "item": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q1"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Old Lyon"
+    },
+    "category": {
+     "type": "literal",
+     "value": "heritage site"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(4.827 45.762)"
+    },
+    "links": {
+     "type": "literal",
+     "value": "40"
+    },
+    "unesco": {
+     "type": "literal",
+     "value": "872"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q456"
+    },
+    "item": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q2"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Q2"
+    },
+    "category": {
+     "type": "literal",
+     "value": "museum"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(4.8 45.7)"
+    },
+    "links": {
+     "type": "literal",
+     "value": "5"
+    }
+   }
+  ]
+ }
+}

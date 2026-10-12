@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build the dataset from the fixture
+        run: npm run build -- tests/fixtures/raw.json
+
+  live-wikidata:
+    # Query changes are checked against the real Wikidata before they publish.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Fetch two small countries and every station from Wikidata
+        run: npm run fetch -- LU MC
+      - run: npm run build
+      - name: Sizes
+        run: |
+          du -sh public/v1 public/v1/*.json
+          jq '.places | length' public/v1/index.json
+          jq '.stations | length' public/v1/stations.json

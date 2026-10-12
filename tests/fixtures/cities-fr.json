@@ -1,0 +1,153 @@
+{
+ "head": {
+  "vars": []
+ },
+ "results": {
+  "bindings": [
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q90"
+    },
+    "cityLabel": {
+     "type": "literal",
+     "value": "Paris"
+    },
+    "pop": {
+     "type": "literal",
+     "value": "2102650"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(2.351388888 48.856944444)"
+    },
+    "voy": {
+     "type": "literal",
+     "value": "https://en.wikivoyage.org/wiki/Paris"
+    },
+    "wp": {
+     "type": "literal",
+     "value": "https://en.wikipedia.org/wiki/Paris"
+    },
+    "site": {
+     "type": "literal",
+     "value": "https://www.paris.fr/"
+    },
+    "names": {
+     "type": "literal",
+     "value": "Paris|Parigi|Parijs"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q456"
+    },
+    "cityLabel": {
+     "type": "literal",
+     "value": "Lyon"
+    },
+    "pop": {
+     "type": "literal",
+     "value": "522250"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(4.835 45.758)"
+    },
+    "voy": {
+     "type": "literal",
+     "value": "https://en.wikivoyage.org/wiki/Lyon"
+    },
+    "names": {
+     "type": "literal",
+     "value": "Lyon|Lione"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q456"
+    },
+    "cityLabel": {
+     "type": "literal",
+     "value": "Lyon"
+    },
+    "pop": {
+     "type": "literal",
+     "value": "513275"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(4.835 45.758)"
+    },
+    "names": {
+     "type": "literal",
+     "value": "Lyon"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q161717"
+    },
+    "cityLabel": {
+     "type": "literal",
+     "value": "Valence"
+    },
+    "pop": {
+     "type": "literal",
+     "value": "64726"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(4.8917 44.9333)"
+    },
+    "voy": {
+     "type": "literal",
+     "value": "https://evil.example/wiki/Valence"
+    },
+    "names": {
+     "type": "literal",
+     "value": "Valence|Valencia"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q999"
+    },
+    "cityLabel": {
+     "type": "literal",
+     "value": "Q999"
+    },
+    "pop": {
+     "type": "literal",
+     "value": "10000"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(1 1)"
+    }
+   },
+   {
+    "city": {
+     "type": "literal",
+     "value": "http://www.wikidata.org/entity/Q998"
+    },
+    "cityLabel": {
+     "type": "literal",
+     "value": "Nowhere"
+    },
+    "pop": {
+     "type": "literal",
+     "value": "10000"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(500 1)"
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "head": {
+  "vars": []
+ },
+ "results": {
+  "bindings": [
+   {
+    "iso2": {
+     "type": "literal",
+     "value": "FR"
+    }
+   },
+   {
+    "iso2": {
+     "type": "literal",
+     "value": "jp"
+    }
+   },
+   {
+    "iso2": {
+     "type": "literal",
+     "value": "FR"
+    }
+   },
+   {
+    "iso2": {
+     "type": "literal",
+     "value": "XXX"
+    }
+   }
+  ]
+ }
+}
