@@ -84,20 +84,31 @@ export function parseCountries(result: unknown): string[] {
   return [...new Set(codes)].sort();
 }
 
-/** Towns and cities of one country with at least minPopulation() people. */
+/**
+ * Towns and cities of one country with at least minPopulation() people. The towns are
+ * found first, then their details read once each: a town with several populations,
+ * coordinates and labels would otherwise multiply into hundreds of rows, which is what
+ * made large countries time out.
+ */
 export function citiesQuery(countryIso2: string): string {
-  return `SELECT ?city ?cityLabel ?pop ?coord ?voy ?wp ?site (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names) WHERE {
-  ?country wdt:P297 "${countryIso2}" .
-  ?city wdt:P17 ?country ; wdt:P1082 ?pop ; wdt:P625 ?coord ; wdt:P31 ?cls .
-  FILTER(?pop >= ${minPopulation(countryIso2)})
-  ?cls wdt:P279* wd:Q486972 .
+  return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
+       (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names) WHERE {
+  {
+    SELECT DISTINCT ?city WHERE {
+      ?country wdt:P297 "${countryIso2}" .
+      ?city wdt:P17 ?country ; wdt:P1082 ?p0 .
+      FILTER(?p0 >= ${minPopulation(countryIso2)})
+      ?city wdt:P31/wdt:P279* wd:Q486972 .
+    }
+  }
+  ?city wdt:P1082 ?p ; wdt:P625 ?c .
   OPTIONAL { ?city rdfs:label ?alt . FILTER(LANG(?alt) IN (${LANGS.map((l) => `"${l}"`).join(", ")})) }
-  OPTIONAL { ?voy schema:about ?city ; schema:isPartOf <https://en.wikivoyage.org/> . }
-  OPTIONAL { ?wp schema:about ?city ; schema:isPartOf <https://en.wikipedia.org/> . }
-  OPTIONAL { ?city wdt:P856 ?site . }
+  OPTIONAL { ?v schema:about ?city ; schema:isPartOf <https://en.wikivoyage.org/> . }
+  OPTIONAL { ?w schema:about ?city ; schema:isPartOf <https://en.wikipedia.org/> . }
+  OPTIONAL { ?city wdt:P856 ?s . }
   ${labelService}
 }
-GROUP BY ?city ?cityLabel ?pop ?coord ?voy ?wp ?site`;
+GROUP BY ?city ?cityLabel`;
 }
 
 /** Kinds of sight, by Wikidata class. UNESCO World Heritage sites are kept whatever their class. */
@@ -116,11 +127,18 @@ export const SIGHT_CLASSES: [string, string][] = [
   ["Q12280", "bridge"],
 ];
 
-/** Sights in a batch of cities (Wikidata ids), up to two administrative levels down. */
+/**
+ * Sights in a batch of cities (Wikidata ids), up to two administrative levels down. The
+ * query runs in the order written (optimizer off): from the cities down to the items in
+ * them, then the well-known ones, then their class. Left to itself the query service
+ * started from every church or museum on Wikidata and timed out.
+ */
 export function sightsQuery(cityIds: string[]): string {
   return `SELECT ?city ?item ?itemLabel ?category ?coord ?links ?unesco ?wp WHERE {
+  hint:Query hint:optimizer "None" .
   VALUES ?city { ${cityIds.map((id) => `wd:${id}`).join(" ")} }
-  ?item wdt:P131/wdt:P131? ?city ; wdt:P625 ?coord ; wikibase:sitelinks ?links .
+  { ?item wdt:P131 ?city . } UNION { ?part wdt:P131 ?city . ?item wdt:P131 ?part . }
+  ?item wikibase:sitelinks ?links .
   FILTER(?links >= 3)
   {
     VALUES (?cls ?category) { ${SIGHT_CLASSES.map(([c, t]) => `(wd:${c} "${t}")`).join(" ")} }
@@ -128,6 +146,7 @@ export function sightsQuery(cityIds: string[]): string {
   } UNION {
     ?item wdt:P757 ?whs . BIND("heritage site" AS ?category)
   }
+  ?item wdt:P625 ?coord .
   OPTIONAL { ?item wdt:P757 ?unesco . }
   OPTIONAL { ?wp schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
   ${labelService}

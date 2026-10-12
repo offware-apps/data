@@ -31,8 +31,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Fetch three countries from Wikidata
-        run: npm run fetch -- LU MC CH
+      - name: Fetch four countries from Wikidata
+        # Great Britain checks large cities (London's boroughs) against the time limit.
+        run: npm run fetch -- LU MC CH GB
       - run: npm run build
       - name: Sizes
         run: |
