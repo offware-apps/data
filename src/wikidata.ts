@@ -90,15 +90,26 @@ export function parseCountries(result: unknown): string[] {
  * their details read once each: a town with several populations, coordinates and labels
  * would otherwise multiply into hundreds of rows, which made large countries time out.
  */
-export function citiesQuery(countryIso2: string): string {
+export function citiesQuery(countryIso2: string, byPopulation = false): string {
+  // byPopulation: for countries with millions of items (Great Britain, the United States),
+  // read every item with a population and keep the country's, in that order, rather than
+  // read every item of the country. Slower for small countries, but never times out.
+  const towns = byPopulation
+    ? `hint:SubQuery hint:optimizer "None" .
+    ?country wdt:P297 "${countryIso2}" .
+    ?city wdt:P1082 ?p0 .
+    FILTER(?p0 >= ${minPopulation(countryIso2)})
+    ?city wdt:P17 ?country ; wdt:P31 ?cls .
+    ?cls wdt:P279* wd:Q486972 .`
+    : `?country wdt:P297 "${countryIso2}" .
+    ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
+    FILTER(?p0 >= ${minPopulation(countryIso2)})
+    ?cls wdt:P279* wd:Q486972 .`;
   return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
        (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
 WITH {
   SELECT DISTINCT ?city WHERE {
-    ?country wdt:P297 "${countryIso2}" .
-    ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
-    FILTER(?p0 >= ${minPopulation(countryIso2)})
-    ?cls wdt:P279* wd:Q486972 .
+    ${towns}
   }
 } AS %towns
 WHERE {
@@ -266,15 +277,18 @@ export function parseSights(result: unknown): Record<string, Sight[]> {
 /**
  * Mainline railway stations of one country that are still open, with coordinates and
  * either a UIC code or a page on a Wikimedia project (which leaves out most tram and metro
- * stops). One query per country, with the labels read only once the stations are found,
- * stays inside the query service's time limit.
+ * stops). One query per country, run in the written order: every railway station on
+ * Wikidata, then the country's, then their labels. Reading a large country's items first
+ * timed out.
  */
 export function stationsQuery(countryIso2: string): string {
   return `SELECT ?station ?stationLabel ?iso2 ?coord
 WITH {
   SELECT ?station (SAMPLE(?c) AS ?coord) WHERE {
+    hint:SubQuery hint:optimizer "None" .
     ?country wdt:P297 "${countryIso2}" .
-    ?station wdt:P31 wd:Q55488 ; wdt:P17 ?country ; wdt:P625 ?c ; wikibase:sitelinks ?links .
+    ?station wdt:P31 wd:Q55488 .
+    ?station wdt:P17 ?country ; wdt:P625 ?c ; wikibase:sitelinks ?links .
     FILTER NOT EXISTS { ?station wdt:P576 ?closed . }
     FILTER NOT EXISTS { ?station wdt:P5817 wd:Q56556915 . }
     FILTER NOT EXISTS { ?station wdt:P5817 wd:Q45382883 . }

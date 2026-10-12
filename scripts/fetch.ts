@@ -39,9 +39,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const started = Date.now();
 const log = (msg: string): void => console.log(`[fetch +${Math.round((Date.now() - started) / 60_000)} min] ${msg}`);
 
-async function sparql(query: string): Promise<unknown> {
+async function sparql(query: string, tries = TRIES): Promise<unknown> {
   let last: unknown;
-  for (let i = 1; i <= TRIES; i++) {
+  for (let i = 1; i <= tries; i++) {
     try {
       const res = await fetch(ENDPOINT, {
         method: "POST",
@@ -61,9 +61,9 @@ async function sparql(query: string): Promise<unknown> {
       return await res.json();
     } catch (err) {
       last = err;
-      console.error(`[fetch] attempt ${i}/${TRIES} failed: ${String(err)}`);
+      console.error(`[fetch] attempt ${i}/${tries} failed: ${String(err)}`);
       const wait = typeof (err as Error).cause === "number" ? ((err as Error).cause as number) * 1000 : 5_000 * i;
-      if (i < TRIES) await sleep(wait);
+      if (i < tries) await sleep(wait);
     }
   }
   throw last;
@@ -77,7 +77,9 @@ log(`${all.length} countries`);
 const missing: string[] = [];
 for (const cc of all) {
   try {
-    const cities = parseCities(await sparql(citiesQuery(cc)), cc);
+    // The quick way first; a country too large for it is read the slow, sure way.
+    const result = await sparql(citiesQuery(cc), 1).catch(() => sparql(citiesQuery(cc, true)));
+    const cities = parseCities(result, cc);
     raw.cities.push(...cities);
     log(`${cc}: ${cities.length} towns and cities`);
   } catch (err) {
