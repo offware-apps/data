@@ -96,9 +96,9 @@ export function citiesQuery(countryIso2: string): string {
   {
     SELECT DISTINCT ?city WHERE {
       ?country wdt:P297 "${countryIso2}" .
-      ?city wdt:P17 ?country ; wdt:P1082 ?p0 .
+      ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
       FILTER(?p0 >= ${minPopulation(countryIso2)})
-      ?city wdt:P31/wdt:P279* wd:Q486972 .
+      ?cls wdt:P279* wd:Q486972 .
     }
   }
   ?city wdt:P1082 ?p ; wdt:P625 ?c .
