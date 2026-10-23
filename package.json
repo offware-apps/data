@@ -10,6 +10,7 @@
     "test": "vitest run",
     "fetch": "tsx scripts/fetch.ts",
     "build": "tsx scripts/build.ts",
+    "city-admin1": "tsx scripts/city-admin1.ts",
     "check": "npm run typecheck && npm test"
   },
   "devDependencies": {

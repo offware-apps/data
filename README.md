@@ -53,7 +53,8 @@ an app showing the data shows the source's `attribution` from `sources.json`.
 | moments | Each item cites its sources | Written for Postcards (CC0), drawn from Wikidata, GeoNames, UNESCO and Wikivoyage |
 
 The vendored source files are in `data/reference/`: GeoNames' admin-1 names and city codes
-(export of 2026-09-30), UNESCO's list (retrieved 2026-07-11) and the moments.
+(export of 2026-09-30, refreshed with `npm run city-admin1`, see `scripts/city-admin1.ts`),
+UNESCO's list (retrieved 2026-07-11) and the moments.
 
 - **Wikidata (CC0).** Every name, population, coordinate, category and UNESCO flag comes
   from Wikidata. CC0 asks for nothing, but every record still names its source: its

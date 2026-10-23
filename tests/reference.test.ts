@@ -1,4 +1,9 @@
+import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { buildCities, type CityRecord, type Subdivision } from "../src/reference/cities";
+import { REFERENCE_DIR } from "../src/reference/common";
 import { buildCountries } from "../src/reference/countries";
 import { plainName } from "../src/reference/heritage";
 import { buildMoments } from "../src/reference/moments";
@@ -35,5 +40,49 @@ describe("reference datasets", () => {
     const built = buildMoments();
     expect(built.records.moments).toBeGreaterThan(100);
     expect(built.files[0]!.path).toBe("v1/moments/moments.json");
+  });
+
+  describe("cities and regions", () => {
+    const built = buildCities();
+    const file = <T>(path: string): T => built.files.find((f) => f.path === path)!.body as T;
+    const cities = file<CityRecord[]>("v1/cities/all.json");
+    const regions = new Map(file<Subdivision[]>("v1/regions/regions.json").map((r) => [r.id, r.name]));
+    // Both vendored files are one GeoNames day: each city's region code and each code's
+    // name. Mixing days put Hanoi under "Quang Tri" when Vietnam renumbered in 2025.
+    const vendored = (name: string) =>
+      new Map(
+        gunzipSync(readFileSync(join(REFERENCE_DIR, name)))
+          .toString("utf8")
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => line.split("\t") as [string, string]),
+      );
+
+    it("gives every city GeoNames lists the region code it lists today", () => {
+      const current = vendored("city-admin1.tsv.gz");
+      const wrong = cities
+        .filter((c) => {
+          const code = current.get(c.id);
+          const listed = code?.startsWith(`${c.countryIso2}.`) && !code.endsWith(".");
+          return listed && c.subdivisionId !== code!.replace(".", "-");
+        })
+        .map((c) => `${c.name} ${c.id}: ${c.subdivisionId}`);
+      expect(wrong).toEqual([]);
+    });
+
+    it("names every region by GeoNames' name for its code, France in French", () => {
+      const wrong = [...vendored("admin1CodesASCII.txt.gz")]
+        .map(([code, name]) => ({ id: code.replace(".", "-"), name, ours: regions.get(code.replace(".", "-")) }))
+        .filter((s) => s.ours !== undefined && !s.id.startsWith("FR-") && s.ours !== s.name)
+        .map((s) => `${s.id}: ${s.ours}`);
+      expect(wrong).toEqual([]);
+      expect(regions.get("FR-53")).toBe("Bretagne");
+    });
+
+    it("keeps the most populous first, and the top 10,000 apart", () => {
+      expect(file<CityRecord[]>("v1/cities/top.json")).toHaveLength(10_000);
+      expect(cities[0]!.population).toBeGreaterThanOrEqual(cities[1]!.population ?? 0);
+      expect(cities.find((c) => c.id === "2988507")).toMatchObject({ name: "Paris", subdivisionId: "FR-11" });
+    });
   });
 });
