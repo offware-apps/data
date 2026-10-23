@@ -51,7 +51,7 @@ export const SOURCES: Source[] = [
     url: "https://www.geonames.org",
     license: "CC-BY-4.0",
     licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
-    use: "Every city (by way of the all-the-cities package), each city's first-level region code and each code's name (export of 2026-09-30).",
+    use: "Every city of 1,000 people or more, each city's first-level region code and each code's name. Checked for changes monthly.",
     attribution: "Contains data from GeoNames (https://www.geonames.org), CC BY 4.0.",
     fix: "Errors are corrected on geonames.org.",
   },
@@ -79,7 +79,7 @@ export const SOURCES: Source[] = [
     url: "https://whc.unesco.org/en/list/",
     license: "CC-BY-SA-3.0-IGO",
     licenseUrl: "https://creativecommons.org/licenses/by-sa/3.0/igo/",
-    use: "Every World Heritage site through the 47th session (2025): name, countries, coordinates and category. Some moments are drawn from it.",
+    use: "Every World Heritage site: name, countries, coordinates and category. Checked for changes weekly. Some moments are drawn from it.",
     attribution: "© UNESCO World Heritage Centre (https://whc.unesco.org), CC BY-SA 3.0 IGO.",
   },
   {
@@ -103,11 +103,11 @@ export const SOURCES: Source[] = [
   },
   {
     id: "world-countries",
-    name: "world-countries (mledoze/countries)",
+    name: "mledoze/countries",
     url: "https://github.com/mledoze/countries",
     license: "ODbL-1.0",
     licenseUrl: ODBL,
-    use: "Each country's common name, region, languages and UN membership.",
+    use: "Each country's common name, region, languages and UN membership. Checked for changes weekly.",
     attribution: "Contains information from mledoze/countries (https://github.com/mledoze/countries), made available under the ODbL.",
   },
   {

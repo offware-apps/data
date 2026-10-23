@@ -61,7 +61,7 @@ export const DATASETS: Dataset[] = [
   {
     id: "cities",
     name: "Cities worldwide",
-    description: "Every city GeoNames lists in the all-the-cities package (about 135,000), with population, coordinates and first-level region.",
+    description: "Every city of 1,000 people or more GeoNames lists (about 135,000), with population, coordinates and first-level region.",
     license: "CC-BY-4.0",
     sources: ["geonames"],
     schedule: "weekly",
@@ -94,7 +94,7 @@ export const DATASETS: Dataset[] = [
   {
     id: "heritage",
     name: "UNESCO World Heritage sites",
-    description: "Every World Heritage site through the 2025 session, once per country it is in.",
+    description: "Every World Heritage site, once per country it is in.",
     license: "CC-BY-SA-3.0-IGO",
     sources: ["unesco-whc"],
     schedule: "weekly",
