@@ -23,33 +23,9 @@ export const ATTRIBUTION = "Data from Wikidata (CC0). Guide links point to Wikiv
 /** The Wikidata page of an item: where its values come from, and where anyone can correct them. */
 export const wikidataUrl = (id: string): string => `https://www.wikidata.org/wiki/${id}`;
 
-export const SOURCES = [
-  {
-    id: "wikidata",
-    name: "Wikidata",
-    url: "https://www.wikidata.org",
-    license: "CC0-1.0",
-    licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
-    use: "Every name, population, coordinate, category and UNESCO flag, and the links below.",
-    fix: "Each record's `source` is its Wikidata item: correct an error there and it reaches this dataset on the next weekly build.",
-  },
-  {
-    id: "wikivoyage",
-    name: "Wikivoyage",
-    url: "https://en.wikivoyage.org",
-    license: "CC-BY-SA-4.0",
-    licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
-    use: "Links to guide articles only. No article text is copied.",
-  },
-  {
-    id: "wikipedia",
-    name: "Wikipedia",
-    url: "https://en.wikipedia.org",
-    license: "CC-BY-SA-4.0",
-    licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
-    use: "Links to articles only. No article text is copied.",
-  },
-];
+import { SOURCES } from "./sources";
+
+export { SOURCES };
 
 export interface PlaceSight {
   wikidata: string;
@@ -156,7 +132,8 @@ export function stationsFile(stations: Station[], retrieved: string): unknown {
   };
 }
 
-export function buildFiles(raw: Raw, updatedAt: string): { path: string; body: unknown }[] {
+/** `records` adds the record counts of datasets built elsewhere (src/reference/) to the catalog. */
+export function buildFiles(raw: Raw, updatedAt: string, records: Record<string, number> = {}): { path: string; body: unknown }[] {
   const ids = placeIds(raw.cities);
   const cities = [...raw.cities].sort((a, b) => b.population - a.population || a.wikidata.localeCompare(b.wikidata));
   const files: { path: string; body: unknown }[] = [];
@@ -208,7 +185,7 @@ export function buildFiles(raw: Raw, updatedAt: string): { path: string; body: u
 
   files.push({ path: "v1/places/index.json", body: index });
   files.push({ path: "v1/sources.json", body: { version: 1, updatedAt, sources: SOURCES } });
-  files.push({ path: "v1/catalog.json", body: buildCatalog(updatedAt, { places: cities.length, stations: raw.stations?.length ?? 0 }) });
+  files.push({ path: "v1/catalog.json", body: buildCatalog(updatedAt, { ...records, places: cities.length, stations: raw.stations?.length ?? 0 }) });
   files.push({ path: "v1/stations/railways.json", body: stationsFile(raw.stations ?? [], updatedAt) });
   files.push({ path: "v1/places/landmarks.json", body: landmarks });
   files.push({
