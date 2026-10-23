@@ -1,14 +1,15 @@
 /**
- * The cities and regions datasets, from GeoNames (CC BY 4.0) by way of the all-the-cities
- * package, with each city's admin-1 code and each code's name from one GeoNames day,
- * vendored in data/reference/. A code GeoNames doesn't name takes a name from the dr5hn
+ * The cities and regions datasets, from GeoNames (CC BY 4.0): every city of 1,000 people or
+ * more with its admin-1 code (data/reference/cities.tsv.gz), and each code's name
+ * (admin1CodesASCII.txt.gz), both from one GeoNames day and kept current by
+ * `npm run refresh`. A code GeoNames doesn't name takes a name from the dr5hn
  * countries-states-cities database (ODbL), matched by nearest centroid.
  *
  *   cities/top.json          the 10,000 most populous cities
- *   cities/all.json          every city all-the-cities lists (about 135,000)
+ *   cities/all.json          every city (about 135,000)
  *   regions/regions.json     first-level regions, named
  *
- * Moved from Postcards' scripts/build-reference.mjs; the output is the same.
+ * Moved from Postcards' scripts/build-reference.mjs.
  */
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
@@ -17,15 +18,6 @@ import { join } from "node:path";
 import { REFERENCE_DIR, type Built } from "./common";
 
 const require = createRequire(import.meta.url);
-
-interface SourceCity {
-  cityId: number;
-  name: string;
-  country: string;
-  adminCode?: string;
-  population: number;
-  loc: { coordinates: [number, number] };
-}
 
 export interface CityRecord {
   id: string;
@@ -57,30 +49,21 @@ const FR_REGION_NAMES: Record<string, string> = {
 
 const round4 = (n: number): number => Math.round(n * 1e4) / 1e4;
 
-function tsv(file: string): Map<string, string> {
-  return new Map(
-    gunzipSync(readFileSync(join(REFERENCE_DIR, file)))
-      .toString("utf8")
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => {
-        const [key = "", value = ""] = line.split("\t");
-        return [key, value];
-      }),
-  );
+function lines(file: string): string[][] {
+  return gunzipSync(readFileSync(join(REFERENCE_DIR, file)))
+    .toString("utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => line.split("\t"));
 }
 
 export function buildCities(): Built {
-  const allCities = require("all-the-cities") as SourceCity[];
   const { State } = require("country-state-city") as {
     State: { getStatesOfCountry(cc: string): { name: string; latitude: string | null; longitude: string | null }[] };
   };
 
   // GeoNames admin-1 names by "CC-code", from admin1CodesASCII.txt.
-  const admin1Names = new Map([...tsv("admin1CodesASCII.txt.gz")].map(([code, name]) => [code.replace(".", "-"), name]));
-  // Each city's admin-1 code on the same GeoNames day, by geonameid. all-the-cities carries
-  // codes from an older snapshot, and GeoNames has since given some to other regions.
-  const cityAdmin1 = tsv("city-admin1.tsv.gz");
+  const admin1Names = new Map(lines("admin1CodesASCII.txt.gz").map(([code = "", name = ""]) => [code.replace(".", "-"), name]));
 
   const statesByCountry = new Map<string, { name: string; lat: number; lon: number }[]>();
   const statesOf = (cc: string) => {
@@ -94,27 +77,27 @@ export function buildCities(): Built {
     return list;
   };
 
-  // Cities, each with its current region code where GeoNames still lists it.
+  // Cities, each with its region code on the same GeoNames day as the names above. A line of
+  // cities.tsv.gz: geonameid, name, country, admin-1 code, "u" for a city GeoNames no longer
+  // lists (kept so its id still resolves), population (empty when unknown), latitude, longitude.
   const cities: (CityRecord & { unlisted?: boolean })[] = [];
-  const seen = new Set<number>();
-  for (const c of allCities) {
-    if (!c.cityId || seen.has(c.cityId)) continue;
-    const [lon, lat] = c.loc.coordinates;
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    seen.add(c.cityId);
-    const current = cityAdmin1.get(String(c.cityId));
-    const [cc, admin1] = current ? current.split(".") : [];
+  const seen = new Set<string>();
+  for (const [id = "", name = "", country = "", admin1 = "", unlisted = "", population = "", lat = "", lon = ""] of lines("cities.tsv.gz")) {
+    const la = Number(lat);
+    const lo = Number(lon);
+    if (!id || seen.has(id) || !lat || !lon || !Number.isFinite(la) || !Number.isFinite(lo)) continue;
+    seen.add(id);
     cities.push({
-      id: String(c.cityId),
-      name: c.name,
-      countryIso2: c.country,
-      subdivisionId: cc === c.country && admin1 ? `${cc}-${admin1}` : null,
-      lat: round4(lat),
-      lon: round4(lon),
+      id,
+      name,
+      countryIso2: country,
+      subdivisionId: admin1 ? `${country}-${admin1}` : null,
+      lat: round4(la),
+      lon: round4(lo),
       // GeoNames uses 0 for "unknown population": null, never a fake 0.
-      population: c.population > 0 ? c.population : null,
+      population: Number(population) > 0 ? Number(population) : null,
       // Only a city GeoNames no longer lists falls back to its nearest neighbour.
-      unlisted: !current && !!c.adminCode,
+      unlisted: unlisted === "u",
     });
   }
   const coded = new Map<string, CityRecord[]>();

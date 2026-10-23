@@ -24,7 +24,7 @@ built, how many records it has and which apps read it.
 | | `v1/places/pack.json` | The sights as a Postcards community data pack |
 | stations | `v1/stations/railways.json` | Open railway stations worldwide, in Postcards' station shape |
 | stations-europe | `v1/stations-europe/railways.json` | About 70,000 European stations from Trainline, same shape |
-| cities | `v1/cities/top.json`, `v1/cities/all.json` | The 10,000 most populous cities, and all 135,000 |
+| cities | `v1/cities/top.json`, `v1/cities/all.json` | The 10,000 most populous cities, and all of them (about 135,000) |
 | regions | `v1/regions/regions.json` | First-level regions (states, provinces, régions) with their names |
 | airports | `v1/airports/airports.json` | Every airport with an IATA code |
 | heritage | `v1/heritage/unesco.json` | Every UNESCO World Heritage site, once per country |
@@ -45,16 +45,33 @@ an app showing the data shows the source's `attribution` from `sources.json`.
 | --- | --- | --- |
 | places, stations | CC0 1.0 | Wikidata |
 | stations-europe | ODbL 1.0 | [Trainline EU stations](https://github.com/trainline-eu/stations) |
-| cities | CC BY 4.0 | [GeoNames](https://www.geonames.org), by way of all-the-cities |
+| cities | CC BY 4.0 | [GeoNames](https://www.geonames.org) |
 | regions | ODbL 1.0 | GeoNames, and [dr5hn countries-states-cities](https://github.com/dr5hn/countries-states-cities-database) for a few names |
 | airports | ODbL 1.0 | [OpenFlights](https://openflights.org/data.html) (from OurAirports, public domain) |
 | heritage | CC BY-SA 3.0 IGO | [UNESCO World Heritage Centre](https://whc.unesco.org/en/list/) |
 | countries | ODbL 1.0 | [mledoze/countries](https://github.com/mledoze/countries), ISO 3166-1 codes |
 | moments | Each item cites its sources | Written for Postcards (CC0), drawn from Wikidata, GeoNames, UNESCO and Wikivoyage |
 
-The vendored source files are in `data/reference/`: GeoNames' admin-1 names and city codes
-(export of 2026-09-30, refreshed with `npm run city-admin1`, see `scripts/city-admin1.ts`),
-UNESCO's list (retrieved 2026-07-11) and the moments.
+The saved source files are in `data/reference/`: GeoNames' cities and admin-1 names,
+UNESCO's list, mledoze/countries and the moments. Airports stay as they are, since
+OpenFlights no longer updates its data.
+
+### Keeping the saved sources current
+
+`npm run refresh` (weekly, from `.github/workflows/refresh-sources.yml`) looks for a newer
+version of each saved source, politely: one conditional request per source, answered "not
+modified" when nothing changed (GeoNames' ETag and date, GitHub's content hash, UNESCO's
+"modified" date), and GeoNames only once a month since its files change daily. A source is
+downloaded only when it changed, and the saved copy is rewritten only when the part used
+here changed, compared by SHA-256. `data/reference/sources.lock.json` records what was
+seen.
+
+It never forces anything: a source that can't be reached, answers oddly or would lose more
+than 5% of its records keeps its saved copy, and is tried again the next week. Ids never
+change: a city GeoNames stops listing is kept (marked `u`) so visits saved against it
+still resolve, and UNESCO sites keep their ids in `data/reference/heritage-ids.json` even
+when renamed. A refresh is checked like any change (`npm run check` and a build) before it
+is committed, and reaches the published data at the next weekly build.
 
 - **Wikidata (CC0).** Every name, population, coordinate, category and UNESCO flag comes
   from Wikidata. CC0 asks for nothing, but every record still names its source: its
@@ -73,6 +90,7 @@ npm ci
 npm run check                               # typecheck + tests
 npm run build -- tests/fixtures/raw.json    # build from the fixture (add --offline to skip Trainline)
 npm run fetch -- LU MC                      # fetch two countries (needs query.wikidata.org)
+npm run refresh                             # look for newer saved sources (add --all for GeoNames mid-month)
 npm run build
 ```
 

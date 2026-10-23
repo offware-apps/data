@@ -13,3 +13,5 @@
   linked, never copied. A new source needs its licence and credit in `src/sources.ts` and
   the README.
 - Never correct data here: errors are fixed at the source (Wikidata, GeoNames, Trainline…).
+- The saved sources in `data/reference/` (all but `moments.json`) are updated by
+  `npm run refresh`, never by hand. A city's or a site's id never changes once published.

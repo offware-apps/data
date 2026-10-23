@@ -59,14 +59,15 @@ describe("reference datasets", () => {
       );
 
     it("gives every city GeoNames lists the region code it lists today", () => {
-      const current = vendored("city-admin1.tsv.gz");
-      const wrong = cities
-        .filter((c) => {
-          const code = current.get(c.id);
-          const listed = code?.startsWith(`${c.countryIso2}.`) && !code.endsWith(".");
-          return listed && c.subdivisionId !== code!.replace(".", "-");
-        })
-        .map((c) => `${c.name} ${c.id}: ${c.subdivisionId}`);
+      const saved = new Map(
+        gunzipSync(readFileSync(join(REFERENCE_DIR, "cities.tsv.gz")))
+          .toString("utf8")
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => line.split("\t"))
+          .map(([id = "", , country = "", admin1 = ""]) => [id, admin1 ? `${country}-${admin1}` : null]),
+      );
+      const wrong = cities.filter((c) => saved.get(c.id) && c.subdivisionId !== saved.get(c.id)).map((c) => `${c.name} ${c.id}: ${c.subdivisionId}`);
       expect(wrong).toEqual([]);
     });
 
