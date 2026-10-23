@@ -1,9 +1,10 @@
 # Format (v1)
 
-All files are JSON under `/v1/`. Coordinates are WGS 84 decimal degrees, rounded to 5
-places (about 1 m). Countries are ISO 3166-1 alpha-2 codes. Every record carries its
-Wikidata id; `source` is the URL of that Wikidata item, where its values come from and
-where an error can be corrected.
+All files are JSON under `/v1/`. Coordinates are WGS 84 decimal degrees. Countries are
+ISO 3166-1 alpha-2 codes. In places and stations, coordinates are rounded to 5 places
+(about 1 m) and every record carries its Wikidata id; `source` is the URL of that Wikidata
+item, where its values come from and where an error can be corrected. The other datasets
+keep the ids and rounding of their sources.
 
 ## `catalog.json`
 
@@ -101,6 +102,58 @@ Open mainline railway stations with coordinates and a UIC code or a Wikipedia (o
 The landmarks as a Postcards community data pack (`"format": "postcards-pack"`), at most
 50,000 of them, the best known kept.
 
+## `stations-europe/railways.json`
+
+The same shape as `stations/railways.json`, with `"license": "ODbL-1.0"` and
+`"coverage": "europe"`. Ids are `tl-` and Trainline's own id.
+
+## `cities/top.json`, `cities/all.json`
+
+The 10,000 most populous cities, and every city, most populous first. `id` is the GeoNames
+id; `population` is null when GeoNames doesn't know it; `subdivisionId` is a region in
+`regions/regions.json`, or null.
+
+```json
+[{ "id": "2988507", "name": "Paris", "countryIso2": "FR", "subdivisionId": "FR-11",
+   "lat": 48.8534, "lon": 2.3488, "population": 2138551 }]
+```
+
+## `regions/regions.json`
+
+```json
+[{ "id": "FR-11", "countryIso2": "FR", "name": "Île-de-France" }]
+```
+
+## `airports/airports.json`
+
+```json
+[{ "id": "CDG", "name": "Charles de Gaulle International Airport", "city": "Paris",
+   "countryIso2": "FR", "lat": 49.0128, "lon": 2.55 }]
+```
+
+## `heritage/unesco.json`
+
+One entry per country a site is in; a site in several countries has the country code at
+the end of its id. `lat` and `lon` are 0 when UNESCO gives no coordinates.
+
+```json
+[{ "id": "whs-paris-banks-of-the-seine", "name": "Paris, Banks of the Seine", "countryIso2": "FR",
+   "lat": 48.8655, "lon": 2.3211, "category": "cultural" }]
+```
+
+## `countries/*.json`
+
+Objects keyed by ISO 3166-1 alpha-2 code: `names.json` and `article-names.json`
+(`"RU": "Russia"`), `continents.json` (`"FR": "Europe"`), `languages.json`
+(`"FR": [{ "code": "fra", "name": "French" }]`) and `sovereignty.json` (`"un"` or
+`"territory"`).
+
+## `moments/moments.json`
+
+Postcards' moments: `{ name, version, license, note, experiences: [...] }`, each
+experience citing its own `sources`.
+
 ## `sources.json`
 
-Every source, its licence and what is taken from it.
+Every source, its licence, what is taken from it, and the `attribution` its licence asks
+an app to show.

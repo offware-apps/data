@@ -103,14 +103,27 @@ describe("dataset files", () => {
     expect(stations.stations.map((s) => s.id)).toEqual(["Q745942", "Q801124"]);
 
     const sources = byPath.get("v1/sources.json") as { sources: { id: string; license: string }[] };
-    expect(sources.sources.map((s) => `${s.id} ${s.license}`)).toEqual(["wikidata CC0-1.0", "wikivoyage CC-BY-SA-4.0", "wikipedia CC-BY-SA-4.0"]);
+    expect(sources.sources.slice(0, 3).map((s) => `${s.id} ${s.license}`)).toEqual(["wikidata CC0-1.0", "wikivoyage CC-BY-SA-4.0", "wikipedia CC-BY-SA-4.0"]);
 
     const catalog = byPath.get("v1/catalog.json") as Catalog;
     expect(catalog.baseUrl).toBe("https://offware-apps.github.io/data/v1");
-    expect(catalog.datasets.map((d) => `${d.id} ${d.records}`)).toEqual(["places 4", "stations 2"]);
+    expect(catalog.datasets.map((d) => `${d.id} ${d.records}`)).toEqual([
+      "places 4", "stations 2", "stations-europe 0", "cities 0", "regions 0", "airports 0", "heritage 0", "countries 0", "moments 0",
+    ]);
+    // A dataset built elsewhere gets its count from the caller.
+    const withCounts = buildFiles(raw(), "2026-10-12T00:00:00.000Z", { cities: 7 }).find((f) => f.path === "v1/catalog.json")!.body as Catalog;
+    expect(withCounts.datasets.find((d) => d.id === "cities")?.records).toBe(7);
     // Every source a dataset names is listed with its licence.
     const listed = new Set(sources.sources.map((s) => s.id));
     for (const d of catalog.datasets) for (const s of d.sources) expect(listed.has(s)).toBe(true);
+    // A share-alike source's licence is the licence of every dataset built from it.
+    const licenseOf = new Map(sources.sources.map((s) => [s.id, s.license]));
+    for (const d of catalog.datasets) {
+      for (const s of d.sources) {
+        const l = licenseOf.get(s)!;
+        if (l.startsWith("ODbL") || (l.startsWith("CC-BY-SA") && d.id !== "places")) expect(d.license).toContain(l);
+      }
+    }
   });
 
   it("never gives a town the name of one of the dataset's files", () => {

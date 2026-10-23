@@ -2,7 +2,7 @@
   "name": "data",
   "version": "0.1.0",
   "private": true,
-  "description": "The open data every Offware app reads: towns, sights, guide links and railway stations worldwide, served as static JSON.",
+  "description": "The open data every Offware app reads: towns, sights, guide links, railway stations, cities, regions, airports, UNESCO sites, countries and moments, served as static JSON.",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
@@ -17,5 +17,12 @@
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "airport-data": "^1.0.1",
+    "all-the-cities": "^3.1.0",
+    "country-state-city": "^3.2.1",
+    "i18n-iso-countries": "^7.14.0",
+    "world-countries": "^5.1.0"
   }
 }

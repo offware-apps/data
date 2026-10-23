@@ -8,6 +8,8 @@
   code that writes the files.
 - One folder under `v1/` per dataset. A new dataset also gets an entry in `src/catalog.ts`
   and its sources in `SOURCES`.
-- Respect every licence: values come from Wikidata (CC0) only. Wikivoyage and Wikipedia
-  are linked, never copied. A new source needs its licence in `SOURCES` and the README.
-- Never correct data here: errors are fixed on Wikidata, at each record's `source`.
+- Respect every licence: a dataset carries the licence of its sources, and a share-alike
+  source (ODbL, CC BY-SA) makes the dataset share-alike too. Wikivoyage and Wikipedia are
+  linked, never copied. A new source needs its licence and credit in `src/sources.ts` and
+  the README.
+- Never correct data here: errors are fixed at the source (Wikidata, GeoNames, Trainline…).
