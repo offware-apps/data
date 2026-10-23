@@ -147,7 +147,7 @@ export function stationsFile(stations: Station[], retrieved: string): unknown {
       url: "https://www.wikidata.org",
       license: LICENSE,
       retrieved: retrieved.slice(0, 10),
-      note: "Open mainline stations with coordinates and a UIC code or a Wikipedia article; most tram and metro stops are left out. Each station's id is its Wikidata item, where it can be corrected.",
+      note: "Open mainline stations with coordinates and a UIC code or a Wikipedia (or other Wikimedia) page; most tram and metro stops are left out. Each station's id is its Wikidata item, where it can be corrected.",
       coverage: "worldwide",
     },
     stations: [...stations]

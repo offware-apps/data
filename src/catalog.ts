@@ -41,7 +41,7 @@ export const DATASETS: Dataset[] = [
   {
     id: "stations",
     name: "Railway stations worldwide",
-    description: "Open mainline railway stations with coordinates and a UIC code or a Wikipedia article.",
+    description: "Open mainline railway stations with coordinates and a UIC code or a Wikipedia (or other Wikimedia) page.",
     license: "CC0-1.0",
     sources: ["wikidata"],
     schedule: "weekly",
