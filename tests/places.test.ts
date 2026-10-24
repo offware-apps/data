@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PACK_MAX, buildFiles, placeIds, slug, type Place, type PlacesIndex } from "../src/places";
 import type { Catalog } from "../src/catalog";
-import { citiesQuery, minPopulation, parseCities, parseCountries, parseSights, parseStations, point, sightsQuery, type Raw } from "../src/wikidata";
+import { citiesQuery, minPopulation, parseCities, parseCountries, parseSights, parseStations, point, sightsQuery, stationsQuery, type Raw } from "../src/wikidata";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf-8"));
 
@@ -55,7 +55,16 @@ describe("Wikidata results", () => {
 
   it("builds queries for a country and a batch of cities", () => {
     expect(citiesQuery("FR")).toContain('wdt:P297 "FR"');
+    // Communes are municipalities on Wikidata, not settlements.
+    expect(citiesQuery("FR")).toContain("wd:Q15284");
     expect(sightsQuery(["Q90", "Q456"])).toContain("VALUES ?city { wd:Q90 wd:Q456 }");
+  });
+
+  it("finds Dutch towns and stations by the country they name", () => {
+    expect(citiesQuery("NL")).toContain("BIND(wd:Q55 AS ?country)");
+    expect(citiesQuery("NL", true)).toContain("BIND(wd:Q55 AS ?country)");
+    expect(stationsQuery("NL")).toContain("BIND(wd:Q55 AS ?country)");
+    expect(stationsQuery("NL")).not.toContain("P297");
   });
 });
 

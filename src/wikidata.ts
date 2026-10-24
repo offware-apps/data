@@ -77,6 +77,27 @@ export const COUNTRIES_QUERY = `SELECT DISTINCT ?iso2 WHERE {
   FILTER NOT EXISTS { ?country wdt:P576 ?dissolved . }
 }`;
 
+/**
+ * Where the ISO code sits on an item other than the one towns and stations name as their
+ * country: "NL" is on the Kingdom of the Netherlands, while Dutch towns and stations are in
+ * the Netherlands, its European part.
+ */
+const COUNTRY_ITEMS: Record<string, string> = { NL: "Q55" };
+
+/** Binds ?country to the country with this ISO 3166-1 code. */
+function country(countryIso2: string): string {
+  const item = COUNTRY_ITEMS[countryIso2];
+  return item ? `BIND(wd:${item} AS ?country)` : `?country wdt:P297 "${countryIso2}" .`;
+}
+
+/**
+ * What a town is: a human settlement, or a municipality (French communes, Italian comuni and
+ * Dutch gemeenten are municipalities, not settlements, on Wikidata). Neighbourhoods are left
+ * out: Turkey alone has thousands of mahalle of 5,000 people or more.
+ */
+const TOWN_CLASSES = `FILTER(?cls NOT IN (wd:Q17051044, wd:Q123705, wd:Q2983893))
+    { ?cls wdt:P279* wd:Q486972 . } UNION { ?cls wdt:P279* wd:Q15284 . }`;
+
 export function parseCountries(result: unknown): string[] {
   const codes = bindings(result)
     .map((b) => b.iso2?.value?.toUpperCase() ?? "")
@@ -96,15 +117,15 @@ export function citiesQuery(countryIso2: string, byPopulation = false): string {
   // read every item of the country. Slower for small countries, but never times out.
   const towns = byPopulation
     ? `hint:SubQuery hint:optimizer "None" .
-    ?country wdt:P297 "${countryIso2}" .
+    ${country(countryIso2)}
     ?city wdt:P1082 ?p0 .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
     ?city wdt:P17 ?country ; wdt:P31 ?cls .
-    ?cls wdt:P279* wd:Q486972 .`
-    : `?country wdt:P297 "${countryIso2}" .
+    ${TOWN_CLASSES}`
+    : `${country(countryIso2)}
     ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
-    ?cls wdt:P279* wd:Q486972 .`;
+    ${TOWN_CLASSES}`;
   return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
        (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
 WITH {
@@ -286,7 +307,7 @@ export function stationsQuery(countryIso2: string): string {
 WITH {
   SELECT ?station (SAMPLE(?c) AS ?coord) WHERE {
     hint:SubQuery hint:optimizer "None" .
-    ?country wdt:P297 "${countryIso2}" .
+    ${country(countryIso2)}
     ?station wdt:P31 wd:Q55488 .
     ?station wdt:P17 ?country ; wdt:P625 ?c ; wikibase:sitelinks ?links .
     FILTER NOT EXISTS { ?station wdt:P576 ?closed . }
