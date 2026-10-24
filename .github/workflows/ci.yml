@@ -31,8 +31,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Probe town gaps
-        run: npx tsx scripts/probe.ts
+      - name: Probe the countries that came back short (temporary)
+        run: npm run fetch -- NL TR FR IT
       - name: Fetch three countries from Wikidata
         # Great Britain and the United States are the heaviest countries for the time limit.
         run: npm run fetch -- MC GB US
