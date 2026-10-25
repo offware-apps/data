@@ -1,1 +1,12 @@
-{}
+{
+  "countries": {
+    "url": "https://raw.githubusercontent.com/mledoze/countries/master/countries.json",
+    "sha256": "0d92fb23b43ae080bd439f5dc5d61a8845395fdd0af1479b433c59fe079bd6fd",
+    "etag": "W/\"8ef7a310ec17eaa79fbd40bf60472986aa543eec6d2cd6263af40e335bdcf3ef\""
+  },
+  "unesco": {
+    "url": "https://data.unesco.org/api/explore/v2.1/catalog/datasets/whc001/exports/json?select=id_no,name_en,iso_codes,category,coordinates",
+    "sha256": "a8062408eb9bb045eba200128966968794420589aece63b9fe34a222828fa99e",
+    "modified": "2026-10-25T03:07:57+00:00"
+  }
+}
