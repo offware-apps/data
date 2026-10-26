@@ -29,10 +29,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # First, so a repository without Pages fails in seconds, not after the whole fetch.
+      - uses: actions/configure-pages@v5
       - run: npm ci
       - run: npm run fetch
       - run: npm run build
-      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
