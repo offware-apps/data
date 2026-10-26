@@ -1,0 +1,43 @@
+name: Fetch Wikidata
+
+on:
+  # Monthly: a full fetch sends about 2,400 queries and takes about two hours.
+  schedule:
+    - cron: "0 2 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: fetch-wikidata
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    # GitHub stops a job at six hours.
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Fails when too much was left out, so a copy with holes is never committed.
+      - run: npm run fetch
+      - name: Check, commit and publish
+        run: |
+          npm run build -- --offline
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/raw/wikidata.json
+          git commit -m "Fetch Wikidata"
+          git pull --rebase
+          git push
+          # A push by this workflow starts no other workflow, so publish is started by hand.
+          gh workflow run publish.yml
+        env:
+          GH_TOKEN: ${{ github.token }}

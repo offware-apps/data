@@ -80,8 +80,14 @@ is committed, and reaches the published data at the next weekly build.
   published. No article text is copied, so nothing here is under their licence.
 
 **Found an error?** Fix it at the source. Each record's `source` link opens its
-Wikidata item, which anyone can edit, and the fix reaches this repository on the next weekly
-build. Corrections are never made in this repository.
+Wikidata item, which anyone can edit, and the fix reaches this repository the next time
+Wikidata is fetched. Corrections are never made in this repository.
+
+### Fetching Wikidata
+
+A full `npm run fetch` sends about 2,400 queries, one at a time, and takes about two hours,
+so it runs once a month from `.github/workflows/fetch-wikidata.yml`, which commits
+`data/raw/wikidata.json` and starts a publish. The weekly build publishes from that copy.
 
 ## Develop
 

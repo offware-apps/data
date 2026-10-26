@@ -27,7 +27,7 @@ export const SOURCES: Source[] = [
     license: "CC0-1.0",
     licenseUrl: CC0,
     use: "Every name, population, coordinate, category and UNESCO flag in places and stations, and the guide links.",
-    fix: "Each record's `source` is its Wikidata item: correct an error there and it reaches this dataset on the next weekly build.",
+    fix: "Each record's `source` is its Wikidata item: correct an error there and it reaches this dataset the next time Wikidata is fetched.",
   },
   {
     id: "wikivoyage",

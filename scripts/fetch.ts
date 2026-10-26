@@ -1,9 +1,10 @@
 /**
  * Fetch towns, cities, their sights and railway stations from Wikidata to
- * data/raw/wikidata.json (git-ignored). One query per country for towns and for stations,
- * then the sights in batches of cities, slowly enough to respect the query service's
- * limits. A batch that fails is retried in smaller ones; whatever keeps failing is left
- * out and named.
+ * data/raw/wikidata.json, which is committed: a full fetch takes about two hours, so it runs
+ * monthly in its own workflow and the publish workflow builds from the saved copy. One
+ * query per country for towns and for stations, then the sights in batches of cities,
+ * slowly enough to respect the query service's limits. A batch that fails is retried in
+ * smaller ones; whatever keeps failing is left out and named.
  * Run: npm run fetch [-- FR DE]   (default: every country)
  */
 import { mkdirSync, writeFileSync } from "node:fs";

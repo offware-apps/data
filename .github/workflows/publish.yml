@@ -1,7 +1,7 @@
 name: Publish dataset
 
 on:
-  # Wikidata changes every day; a weekly build keeps the load on its query service low.
+  # Monday, after Sunday's refresh of the saved sources.
   schedule:
     - cron: "0 3 * * 1"
   # Publish a merged change straight away instead of at the next scheduled run.
@@ -21,18 +21,17 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # A full fetch takes a few hours; GitHub stops a job at six.
-    timeout-minutes: 355
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      # First, so a repository without Pages fails in seconds, not after the whole fetch.
+      # First, so a repository without Pages fails before anything else runs.
       - uses: actions/configure-pages@v5
       - run: npm ci
-      - run: npm run fetch
+      # From the committed data/raw/wikidata.json, which fetch-wikidata.yml updates monthly.
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
