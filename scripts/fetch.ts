@@ -3,8 +3,9 @@
  * data/raw/wikidata.json, which is committed: a full fetch takes about two hours, so it runs
  * monthly in its own workflow and the publish workflow builds from the saved copy. One
  * query per country for towns and for stations, then the sights in batches of cities,
- * slowly enough to respect the query service's limits. A batch that fails is retried in
- * smaller ones; whatever keeps failing is left out and named.
+ * slowly enough to respect the query service's limits. A country whose query fails is read
+ * in parts, and a batch of sights that fails in smaller batches; whatever keeps failing is
+ * left out and named.
  * Run: npm run fetch [-- FR DE]   (default: every country)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -16,6 +17,7 @@ import {
   parseCountries,
   parseSights,
   parseStations,
+  PARTS,
   sightsQuery,
   stationsQuery,
   type Raw,
@@ -30,6 +32,8 @@ const BATCH = 20;
 const SMALL_BATCH = 4;
 /** FETCH_TRIES=1 makes a test run fail fast. */
 const TRIES = Number(process.env.FETCH_TRIES) || 3;
+/** Tries of a country's whole query before it is read in parts. */
+const WHOLE_TRIES = Math.min(TRIES, 2);
 const PAUSE_MS = 1_000;
 /** Tiny territories time out now and then; more than this many missing countries fails the run. */
 const MAX_MISSING_COUNTRIES = 2;
@@ -75,12 +79,30 @@ const raw: Raw = { fetchedAt: new Date().toISOString(), cities: [], sights: {}, 
 const all = countries.length ? countries : parseCountries(await sparql(COUNTRIES_QUERY));
 log(`${all.length} countries`);
 
+/** FETCH_IN_PARTS=1 skips a country's whole query, to test reading in parts. */
+const whole = (query: string, tries: number): Promise<unknown> =>
+  process.env.FETCH_IN_PARTS === "1" ? Promise.reject(new Error("read in parts")) : sparql(query, tries);
+
+/** A country too large for one query, read one part at a time. */
+async function inParts<T>(what: string, query: (digits: string) => string, parse: (result: unknown) => T[]): Promise<T[]> {
+  log(`${what}: reading in ${PARTS.length} parts`);
+  const out: T[] = [];
+  for (const digits of PARTS) {
+    await sleep(PAUSE_MS);
+    out.push(...parse(await sparql(query(digits))));
+  }
+  return out;
+}
+
 const missing: string[] = [];
 for (const cc of all) {
   try {
-    // The quick way first; a country too large for it is read the slow, sure way.
-    const result = await sparql(citiesQuery(cc), 1).catch(() => sparql(citiesQuery(cc, true)));
-    const cities = parseCities(result, cc);
+    // The quick way first; a country too large for it is read the slow, sure way, and in
+    // parts when even that times out.
+    const cities = await whole(citiesQuery(cc), 1)
+      .catch(() => whole(citiesQuery(cc, true), WHOLE_TRIES))
+      .then((result) => parseCities(result, cc))
+      .catch(() => inParts(`${cc} towns`, (digits) => citiesQuery(cc, true, digits), (result) => parseCities(result, cc)));
     raw.cities.push(...cities);
     log(`${cc}: ${cities.length} towns and cities`);
   } catch (err) {
@@ -95,7 +117,10 @@ const missingStations: string[] = [];
 const seen = new Set<string>();
 for (const cc of all) {
   try {
-    const stations = parseStations(await sparql(stationsQuery(cc))).filter((s) => !seen.has(s.wikidata));
+    const found = await whole(stationsQuery(cc), WHOLE_TRIES)
+      .then(parseStations)
+      .catch(() => inParts(`${cc} stations`, (digits) => stationsQuery(cc, digits), parseStations));
+    const stations = found.filter((s) => !seen.has(s.wikidata));
     for (const s of stations) seen.add(s.wikidata);
     raw.stations.push(...stations);
     if (stations.length) log(`${cc}: ${stations.length} railway stations`);

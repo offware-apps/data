@@ -98,6 +98,17 @@ function country(countryIso2: string): string {
 const TOWN_CLASSES = `FILTER(?cls NOT IN (wd:Q17051044, wd:Q123705, wd:Q2983893))
     { ?cls wdt:P279* wd:Q486972 . } UNION { ?cls wdt:P279* wd:Q15284 . }`;
 
+/**
+ * A country too large for one query is read in five parts, by the last digit of each item's
+ * Wikidata id: each part checks a fifth of the items, so it ends well within the time limit.
+ */
+export const PARTS = ["01", "23", "45", "67", "89"];
+
+/** Keeps the items of one part, or every item when no part is given. */
+function part(variable: string, digits?: string): string {
+  return digits ? `FILTER(REGEX(STR(?${variable}), "[${digits}]$"))` : "";
+}
+
 export function parseCountries(result: unknown): string[] {
   const codes = bindings(result)
     .map((b) => b.iso2?.value?.toUpperCase() ?? "")
@@ -111,7 +122,7 @@ export function parseCountries(result: unknown): string[] {
  * their details read once each: a town with several populations, coordinates and labels
  * would otherwise multiply into hundreds of rows, which made large countries time out.
  */
-export function citiesQuery(countryIso2: string, byPopulation = false): string {
+export function citiesQuery(countryIso2: string, byPopulation = false, digits?: string): string {
   // byPopulation: for countries with millions of items (Great Britain, the United States),
   // read every item with a population and keep the country's, in that order, rather than
   // read every item of the country. Slower for small countries, but never times out.
@@ -120,11 +131,13 @@ export function citiesQuery(countryIso2: string, byPopulation = false): string {
     ${country(countryIso2)}
     ?city wdt:P1082 ?p0 .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
+    ${part("city", digits)}
     ?city wdt:P17 ?country ; wdt:P31 ?cls .
     ${TOWN_CLASSES}`
     : `${country(countryIso2)}
     ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
+    ${part("city", digits)}
     ${TOWN_CLASSES}`;
   return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
        (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
@@ -302,13 +315,14 @@ export function parseSights(result: unknown): Record<string, Sight[]> {
  * Wikidata, then the country's, then their labels. Reading a large country's items first
  * timed out.
  */
-export function stationsQuery(countryIso2: string): string {
+export function stationsQuery(countryIso2: string, digits?: string): string {
   return `SELECT ?station ?stationLabel ?iso2 ?coord
 WITH {
   SELECT ?station (SAMPLE(?c) AS ?coord) WHERE {
     hint:SubQuery hint:optimizer "None" .
     ${country(countryIso2)}
     ?station wdt:P31 wd:Q55488 .
+    ${part("station", digits)}
     ?station wdt:P17 ?country ; wdt:P625 ?c ; wikibase:sitelinks ?links .
     FILTER NOT EXISTS { ?station wdt:P576 ?closed . }
     FILTER NOT EXISTS { ?station wdt:P5817 wd:Q56556915 . }

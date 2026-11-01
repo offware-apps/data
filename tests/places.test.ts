@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PACK_MAX, buildFiles, placeIds, slug, type Place, type PlacesIndex } from "../src/places";
 import type { Catalog } from "../src/catalog";
-import { citiesQuery, minPopulation, parseCities, parseCountries, parseSights, parseStations, point, sightsQuery, stationsQuery, type Raw } from "../src/wikidata";
+import { citiesQuery, minPopulation, PARTS, parseCities, parseCountries, parseSights, parseStations, point, sightsQuery, stationsQuery, type Raw } from "../src/wikidata";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf-8"));
 
@@ -65,6 +65,15 @@ describe("Wikidata results", () => {
     expect(citiesQuery("NL", true)).toContain("BIND(wd:Q55 AS ?country)");
     expect(stationsQuery("NL")).toContain("BIND(wd:Q55 AS ?country)");
     expect(stationsQuery("NL")).not.toContain("P297");
+  });
+
+  it("reads a large country in parts that cover every id once", () => {
+    expect(PARTS.join("").split("").sort().join("")).toBe("0123456789");
+    expect(citiesQuery("US")).not.toContain("REGEX");
+    expect(citiesQuery("US", true, "01")).toContain('FILTER(REGEX(STR(?city), "[01]$"))');
+    expect(citiesQuery("IT", false, "45")).toContain('FILTER(REGEX(STR(?city), "[45]$"))');
+    expect(stationsQuery("JP")).not.toContain("REGEX");
+    expect(stationsQuery("JP", "89")).toContain('FILTER(REGEX(STR(?station), "[89]$"))');
   });
 });
 
