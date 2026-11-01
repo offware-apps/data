@@ -6,7 +6,19 @@
   },
   "unesco": {
     "url": "https://data.unesco.org/api/explore/v2.1/catalog/datasets/whc001/exports/json?select=id_no,name_en,iso_codes,category,coordinates",
-    "sha256": "a8062408eb9bb045eba200128966968794420589aece63b9fe34a222828fa99e",
-    "modified": "2026-10-25T03:07:57+00:00"
+    "sha256": "aaa9df5d54172ae39343760a25402b3eadbdb352dd4f81a6afdfe714a7e31914",
+    "modified": "2026-10-26T11:25:49+00:00"
+  },
+  "geonames-cities": {
+    "url": "https://download.geonames.org/export/dump/cities1000.zip",
+    "sha256": "b147460ad1e6d31e2f887fa4472fce5c9fc933c22319b9627b2d7834a0b1ebfc",
+    "etag": "\"a92e0f-65f2ec8d6d0c1\"",
+    "lastModified": "Sun, 01 Nov 2026 03:40:02 GMT"
+  },
+  "geonames-admin1": {
+    "url": "https://download.geonames.org/export/dump/admin1CodesASCII.txt",
+    "sha256": "42458864faa9887933d75c33408d4a808b765edbcd62a1328fa9e8cfcdfc718e",
+    "etag": "\"24fd6-65f2ec8d6d4a9\"",
+    "lastModified": "Sun, 01 Nov 2026 03:40:02 GMT"
   }
 }
