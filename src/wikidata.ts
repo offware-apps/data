@@ -117,33 +117,50 @@ export function parseCountries(result: unknown): string[] {
 }
 
 /**
- * Towns and cities of one country with at least minPopulation() people. The towns are
- * found first, in a named subquery the query service always runs before the rest, then
- * their details read once each: a town with several populations, coordinates and labels
- * would otherwise multiply into hundreds of rows, which made large countries time out.
+ * Towns and cities of one country with at least minPopulation() people, in named subqueries
+ * the query service runs first and in order: the country's items with a population and
+ * their classes, then which of those few classes are kinds of town (checked once per class,
+ * not once per item, which made large countries time out), then the towns. Their details
+ * are read last, once each: a town with several populations, coordinates and labels would
+ * otherwise multiply into hundreds of rows.
  */
 export function citiesQuery(countryIso2: string, byPopulation = false, digits?: string): string {
   // byPopulation: for countries with millions of items (Great Britain, the United States),
-  // read every item with a population and keep the country's, in that order, rather than
-  // read every item of the country. Slower for small countries, but never times out.
-  const towns = byPopulation
+  // read the items with a large enough population (an index range, as every population is
+  // a number) and keep the country's, rather than read every item of the country.
+  const candidates = byPopulation
     ? `hint:SubQuery hint:optimizer "None" .
     ${country(countryIso2)}
     ?city wdt:P1082 ?p0 .
+    hint:Prior hint:rangeSafe true .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
     ${part("city", digits)}
-    ?city wdt:P17 ?country ; wdt:P31 ?cls .
-    ${TOWN_CLASSES}`
+    ?city wdt:P17 ?country ; wdt:P31 ?cls .`
     : `${country(countryIso2)}
     ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
-    ${part("city", digits)}
-    ${TOWN_CLASSES}`;
+    ${part("city", digits)}`;
   return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
        (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
 WITH {
+  SELECT DISTINCT ?city ?cls WHERE {
+    ${candidates}
+  }
+} AS %candidates
+WITH {
+  SELECT DISTINCT ?cls WHERE { INCLUDE %candidates . }
+} AS %classes
+WITH {
+  SELECT ?cls WHERE {
+    hint:SubQuery hint:optimizer "None" .
+    INCLUDE %classes .
+    ${TOWN_CLASSES}
+  }
+} AS %townClasses
+WITH {
   SELECT DISTINCT ?city WHERE {
-    ${towns}
+    INCLUDE %townClasses .
+    INCLUDE %candidates .
   }
 } AS %towns
 WHERE {
