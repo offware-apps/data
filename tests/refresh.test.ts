@@ -56,8 +56,31 @@ describe("source refresh", () => {
   it("keeps a UNESCO site's id when it is renamed, and never gives a new site an old id", () => {
     const site = (id_no: string, name_en: string, iso_codes = "fr"): SourceSite => ({ id_no, name_en, iso_codes, category: "Cultural", coordinates: { lat: 1, lon: 2 } });
     const known = { "1-FR": "whs-old-town", "9-FR": "whs-harbour" };
-    const { sites, ids } = unescoSites(JSON.stringify([site("7", "Harbour"), site("1", "Old Town and its Walls")]), 2, known);
+    const { sites, ids } = unescoSites(JSON.stringify([site("7", "Harbour"), site("1", "Old Town and its Walls")]), [site("1", "Old Town"), site("9", "Harbour")], known);
     expect(sites.map((s) => s.id_no)).toEqual(["1", "7"]);
     expect(ids).toEqual({ "1-FR": "whs-old-town", "7-FR": "whs-harbour-7", "9-FR": "whs-harbour" });
+  });
+
+  it("reads UNESCO's GeoJSON points and code lists into the saved shape", () => {
+    const feature = (points: number[][]) => ({ type: "Feature", geometry: { type: "MultiPoint", coordinates: points }, properties: {} });
+    const raw = [
+      { id_no: "1", name_en: "One", iso_codes: ["FR"], category: "Cultural", coordinates: feature([[2.35, 48.85]]) },
+      // Three parts: the one nearest their middle is kept.
+      { id_no: "2", name_en: "Two", iso_codes: ["FR", "ES"], category: "Natural", coordinates: feature([[0, 40], [10, 50], [5, 46]]) },
+      { id_no: "3", name_en: "Three", iso_codes: ["IT"], category: "Mixed", coordinates: null },
+    ];
+    const saved: SourceSite[] = [{ id_no: "1", name_en: "One", iso_codes: "FR", category: "Cultural", coordinates: { lat: 48.85, lon: 2.35 } }];
+    const { sites } = unescoSites(JSON.stringify(raw), saved, {});
+    expect(sites).toEqual([
+      { id_no: "1", name_en: "One", iso_codes: "FR", category: "Cultural", coordinates: { lon: 2.35, lat: 48.85 } },
+      { id_no: "2", name_en: "Two", iso_codes: "FR,ES", category: "Natural", coordinates: { lon: 5, lat: 46 } },
+      { id_no: "3", name_en: "Three", iso_codes: "IT", category: "Mixed" },
+    ]);
+  });
+
+  it("keeps the saved UNESCO copy when a new shape loses the points", () => {
+    const saved: SourceSite[] = [1, 2, 3].map((n) => ({ id_no: String(n), name_en: `Site ${n}`, iso_codes: "FR", category: "Cultural", coordinates: { lat: 1, lon: 2 } }));
+    const unknownShape = saved.map((s) => ({ ...s, coordinates: { x: 2, y: 1 } }));
+    expect(() => unescoSites(JSON.stringify(unknownShape), saved, {})).toThrow(/with a point/);
   });
 });

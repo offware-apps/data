@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { REFERENCE_DIR } from "../src/reference/common";
+import type { SourceSite } from "../src/reference/heritage";
 import {
   admin1Codes,
   citiesTsv,
@@ -104,7 +105,7 @@ await step("UNESCO World Heritage List", async () => {
     lock.unesco = { ...lock.unesco!, modified };
     return "not modified";
   }
-  const saved = (JSON.parse(gunzipped("whc-sites.json.gz")) as unknown[]).length;
+  const saved = JSON.parse(gunzipped("whc-sites.json.gz")) as SourceSite[];
   const known = JSON.parse(readFileSync(join(REFERENCE_DIR, "heritage-ids.json"), "utf8")) as Record<string, string>;
   const { sites, ids } = unescoSites(res.body.toString("utf8"), saved, known);
   const changed = save("whc-sites.json.gz", JSON.stringify(sites) + "\n");

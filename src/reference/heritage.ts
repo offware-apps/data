@@ -25,9 +25,35 @@ export interface SourceSite {
   id_no: number | string;
   name_en: string;
   category: string;
-  iso_codes?: string;
-  coordinates?: { lat?: number; lon?: number };
+  /** "FR,ES" in the saved copy; UNESCO's export gives ["FR", "ES"]. */
+  iso_codes?: string | string[];
+  /** { lat, lon } in the saved copy; see sitePoint. */
+  coordinates?: unknown;
 }
+
+/**
+ * A site's point as the build reads it, { lat, lon }, from either shape UNESCO has used:
+ * { lat, lon }, or a GeoJSON Point or MultiPoint ([lon, lat] each). A site of several
+ * parts takes the part nearest their middle, so its point is always one of its own.
+ */
+export function sitePoint(c: unknown): { lat: number; lon: number } | undefined {
+  const o = c as { lat?: unknown; lon?: unknown; geometry?: { coordinates?: unknown } } | null;
+  const valid = (lat: unknown, lon: unknown): lat is number =>
+    typeof lat === "number" && typeof lon === "number" && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+  if (valid(o?.lat, o?.lon)) return { lat: o!.lat as number, lon: o!.lon as number };
+  const g = o?.geometry?.coordinates;
+  if (!Array.isArray(g)) return undefined;
+  const points = (Array.isArray(g[0]) ? g : [g])
+    .map((p) => (Array.isArray(p) ? { lon: p[0] as unknown, lat: p[1] as unknown } : {}))
+    .filter((p): p is { lat: number; lon: number } => valid(p.lat, p.lon));
+  if (points.length === 0) return undefined;
+  const lat = points.reduce((n, p) => n + p.lat, 0) / points.length;
+  const lon = points.reduce((n, p) => n + p.lon, 0) / points.length;
+  const k = Math.cos((lat * Math.PI) / 180);
+  const d = (p: { lat: number; lon: number }) => (p.lat - lat) ** 2 + ((p.lon - lon) * k) ** 2;
+  return points.reduce((best, p) => (d(p) < d(best) ? p : best));
+}
+
 
 export interface HeritageSite {
   id: string;
@@ -78,16 +104,15 @@ function entries(s: SourceSite): { key: string; candidate: string; site: Omit<He
   if (!name || !category) throw new Error(`heritage: site ${s.id_no} has a bad name or category`);
   const isos = [
     ...new Set(
-      String(s.iso_codes ?? "")
+      (Array.isArray(s.iso_codes) ? s.iso_codes.join(",") : String(s.iso_codes ?? ""))
         .split(",")
         .map((c) => c.trim().toUpperCase())
         .filter((c) => /^[A-Z]{2}$/.test(c)),
     ),
   ];
-  const c = s.coordinates;
-  const has = typeof c?.lat === "number" && typeof c?.lon === "number" && Number.isFinite(c.lat) && Number.isFinite(c.lon);
-  const lat = has ? Number(c!.lat!.toFixed(4)) : 0;
-  const lon = has ? Number(c!.lon!.toFixed(4)) : 0;
+  const at = sitePoint(s.coordinates);
+  const lat = at ? Number(at.lat.toFixed(4)) : 0;
+  const lon = at ? Number(at.lon.toFixed(4)) : 0;
   const slug = slugify(name);
   return isos.map((iso) => ({
     key: `${s.id_no}-${iso}`,
