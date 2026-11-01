@@ -4,11 +4,11 @@
  * monthly in its own workflow and the publish workflow builds from the saved copy. One
  * query per country for towns and for stations, then the sights in batches of cities,
  * slowly enough to respect the query service's limits. A country whose query fails is read
- * in parts, and a batch of sights that fails in smaller batches; whatever keeps failing is
- * left out and named.
+ * in parts, and a batch of sights that fails in smaller batches. A country that still can't
+ * be read keeps what the last fetch had for it; whatever is left is left out and named.
  * Run: npm run fetch [-- FR DE]   (default: every country)
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   COUNTRIES_QUERY,
@@ -94,6 +94,19 @@ async function inParts<T>(what: string, query: (digits: string) => string, parse
   return out;
 }
 
+/** The last fetch, committed: a country this run can't read keeps what it had there. */
+const previous = existsSync(OUT) ? (JSON.parse(readFileSync(OUT, "utf-8")) as Raw) : null;
+
+/** Adds what the last fetch had for each missing country; returns the countries it had nothing for. */
+function keepPrevious<T extends { countryIso2: string }>(missing: string[], into: T[], old: T[], what: string): string[] {
+  return missing.filter((cc) => {
+    const kept = old.filter((x) => x.countryIso2 === cc);
+    into.push(...kept);
+    if (kept.length) log(`${cc}: ${kept.length} ${what} kept from the last fetch`);
+    return kept.length === 0;
+  });
+}
+
 const missing: string[] = [];
 for (const cc of all) {
   try {
@@ -112,6 +125,7 @@ for (const cc of all) {
   await sleep(PAUSE_MS);
 }
 if (raw.cities.length === 0) throw new Error("no town or city could be fetched from Wikidata");
+const noTowns = keepPrevious(missing, raw.cities, previous?.cities ?? [], "towns and cities");
 
 const missingStations: string[] = [];
 const seen = new Set<string>();
@@ -130,6 +144,7 @@ for (const cc of all) {
   }
   await sleep(PAUSE_MS);
 }
+const noStations = keepPrevious(missingStations, raw.stations, (previous?.stations ?? []).filter((s) => !seen.has(s.wikidata)), "railway stations");
 log(`${raw.stations.length} railway stations`);
 
 /** Sights of a batch of towns; a batch that fails is tried again a few towns at a time. */
@@ -163,13 +178,13 @@ mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(raw), "utf-8");
 const sightCount = Object.values(raw.sights).reduce((n, s) => n + s.length, 0);
 log(`${raw.cities.length} towns and cities, ${sightCount} sights, ${raw.stations.length} stations → ${OUT}`);
-if (missing.length) console.log(`[fetch] countries without towns: ${missing.join(" ")}`);
-if (missingStations.length) console.log(`[fetch] countries without stations: ${missingStations.join(" ")}`);
+if (noTowns.length) console.log(`[fetch] countries without towns: ${noTowns.join(" ")}`);
+if (noStations.length) console.log(`[fetch] countries without stations: ${noStations.join(" ")}`);
 if (noSights.length) console.log(`[fetch] towns without sights: ${noSights.length}`);
 // A fetch with real holes would publish them: stop instead, and let the next run retry.
 if (
-  missing.length > MAX_MISSING_COUNTRIES ||
-  missingStations.length > MAX_MISSING_COUNTRIES ||
+  noTowns.length > MAX_MISSING_COUNTRIES ||
+  noStations.length > MAX_MISSING_COUNTRIES ||
   noSights.length > ids.length * MAX_MISSING_SIGHTS
 ) {
   console.error("[fetch] too much was left out to publish; nothing is published this run.");

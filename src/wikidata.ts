@@ -126,13 +126,12 @@ export function parseCountries(result: unknown): string[] {
  */
 export function citiesQuery(countryIso2: string, byPopulation = false, digits?: string): string {
   // byPopulation: for countries with millions of items (Great Britain, the United States),
-  // read the items with a large enough population (an index range, as every population is
-  // a number) and keep the country's, rather than read every item of the country.
+  // read every item with a population and keep the country's, in that order, rather than
+  // read every item of the country. Slower for small countries, but lighter for large ones.
   const candidates = byPopulation
     ? `hint:SubQuery hint:optimizer "None" .
     ${country(countryIso2)}
     ?city wdt:P1082 ?p0 .
-    hint:Prior hint:rangeSafe true .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
     ${part("city", digits)}
     ?city wdt:P17 ?country ; wdt:P31 ?cls .`
