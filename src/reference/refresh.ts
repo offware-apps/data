@@ -4,7 +4,7 @@
  * Every function here throws on anything unexpected, so a bad download keeps the old copy.
  */
 import type { SourceCountry } from "./countries";
-import { heritageIds, type SourceSite } from "./heritage";
+import { heritageIds, sitePoint, type SourceSite } from "./heritage";
 
 const UA = "offware-data-refresh (+https://github.com/offware-apps/data)";
 
@@ -95,13 +95,20 @@ export function countriesJson(text: string, saved: number): SourceCountry[] {
   });
 }
 
-/** The UNESCO list, and every site's id: those it had, and new ones for new sites. */
-export function unescoSites(text: string, saved: number, ids: Record<string, string>): { sites: SourceSite[]; ids: Record<string, string> } {
+/** The UNESCO list in the saved shape, and every site's id: those it had, and new ones for new sites. */
+export function unescoSites(text: string, saved: SourceSite[], ids: Record<string, string>): { sites: SourceSite[]; ids: Record<string, string> } {
   const list = JSON.parse(text) as SourceSite[];
-  if (!Array.isArray(list) || !enough(list.length, saved)) throw new Error("heritage: unexpected file");
+  if (!Array.isArray(list) || !enough(list.length, saved.length)) throw new Error("heritage: unexpected file");
   const sites = list
-    .map((s) => ({ id_no: String(s.id_no), name_en: s.name_en, iso_codes: s.iso_codes, category: s.category, coordinates: s.coordinates }))
+    .map((s) => {
+      const at = sitePoint(s.coordinates);
+      const iso = Array.isArray(s.iso_codes) ? s.iso_codes.join(",") : s.iso_codes;
+      return { id_no: String(s.id_no), name_en: s.name_en, iso_codes: iso, category: s.category, ...(at ? { coordinates: at } : {}) };
+    })
     .sort((a, b) => Number(a.id_no) - Number(b.id_no));
   if (sites.some((s) => !/^\d+$/.test(s.id_no))) throw new Error("heritage: a site without a number");
+  // A change of shape that loses the points must not pass for an update.
+  const located = (l: SourceSite[]) => l.filter((s) => sitePoint(s.coordinates)).length;
+  if (!enough(located(sites), located(saved))) throw new Error(`heritage: ${located(sites)} sites with a point, ${located(saved)} saved`);
   return { sites, ids: heritageIds(sites, ids) };
 }
