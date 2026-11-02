@@ -6,52 +6,12 @@
   "bindings": [
    {
     "station": {
-     "type": "literal",
-     "value": "http://www.wikidata.org/entity/Q745942"
-    },
-    "stationLabel": {
-     "type": "literal",
-     "value": "Paris Gare de Lyon"
-    },
-    "iso2": {
-     "type": "literal",
-     "value": "FR"
-    },
-    "coord": {
-     "type": "literal",
-     "value": "Point(2.3733 48.8443)"
-    }
-   },
-   {
-    "station": {
-     "type": "literal",
-     "value": "http://www.wikidata.org/entity/Q745942"
-    },
-    "stationLabel": {
-     "type": "literal",
-     "value": "Paris Gare de Lyon"
-    },
-    "iso2": {
-     "type": "literal",
-     "value": "CH"
-    },
-    "coord": {
-     "type": "literal",
-     "value": "Point(2.3733 48.8443)"
-    }
-   },
-   {
-    "station": {
-     "type": "literal",
+     "type": "uri",
      "value": "http://www.wikidata.org/entity/Q801124"
     },
-    "stationLabel": {
-     "type": "literal",
-     "value": "Tokyo Station"
-    },
-    "iso2": {
-     "type": "literal",
-     "value": "jp"
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q17"
     },
     "coord": {
      "type": "literal",
@@ -60,20 +20,114 @@
    },
    {
     "station": {
-     "type": "literal",
-     "value": "http://www.wikidata.org/entity/Q5"
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q745942"
     },
-    "stationLabel": {
-     "type": "literal",
-     "value": "Q5"
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q142"
     },
-    "iso2": {
+    "coord": {
      "type": "literal",
-     "value": "FR"
+     "value": "Point(2.3733 48.8443)"
+    }
+   },
+   {
+    "station": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1"
+    },
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q55"
     },
     "coord": {
      "type": "literal",
      "value": "Point(1 1)"
+    }
+   },
+   {
+    "station": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1"
+    },
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q39"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(1 1)"
+    }
+   },
+   {
+    "station": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q5"
+    },
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q142"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(1 1)"
+    }
+   },
+   {
+    "station": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2"
+    },
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q29999"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(4.9 52.37)"
+    }
+   },
+   {
+    "station": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1124795"
+    },
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q55"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(4.9003 52.3789)"
+    }
+   },
+   {
+    "station": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q3"
+    },
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q39"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(6.14 46.21)"
+    }
+   },
+   {
+    "station": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q3"
+    },
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q55"
+    },
+    "coord": {
+     "type": "literal",
+     "value": "Point(6.14 46.21)"
     }
    }
   ]

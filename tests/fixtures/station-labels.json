@@ -1,0 +1,69 @@
+{
+ "head": {
+  "vars": []
+ },
+ "results": {
+  "bindings": [
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q801124"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Tokyo Station"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q745942"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Paris Gare de Lyon"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Frontier"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q5"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Q5"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1124795"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Amsterdam Centraal"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q3"
+    },
+    "itemLabel": {
+     "type": "literal",
+     "value": "Border"
+    }
+   }
+  ]
+ }
+}

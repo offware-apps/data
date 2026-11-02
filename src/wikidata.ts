@@ -106,35 +106,58 @@ export function parseCountries(result: unknown): string[] {
 }
 
 /**
- * Towns and cities of one country with at least minPopulation() people. The towns are
- * found first, in a named subquery the query service always runs before the rest, then
- * their details read once each: a town with several populations, coordinates and labels
- * would otherwise multiply into hundreds of rows, which made large countries time out.
+ * The towns and cities of one country with at least minPopulation() people, as a named
+ * subquery %towns, after others the query service runs first and in order: the country's
+ * items with a population and their classes, then which of those few classes are kinds of
+ * town (checked once per class, not once per item, which made large countries time out).
  */
-export function citiesQuery(countryIso2: string, byPopulation = false): string {
+function towns(countryIso2: string, byPopulation: boolean): string {
   // byPopulation: for countries with millions of items (Great Britain, the United States),
   // read every item with a population and keep the country's, in that order, rather than
-  // read every item of the country. Slower for small countries, but never times out.
-  const towns = byPopulation
+  // read every item of the country. Slower for small countries, but lighter for large ones.
+  const candidates = byPopulation
     ? `hint:SubQuery hint:optimizer "None" .
     ${country(countryIso2)}
     ?city wdt:P1082 ?p0 .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
-    ?city wdt:P17 ?country ; wdt:P31 ?cls .
-    ${TOWN_CLASSES}`
+    ?city wdt:P17 ?country ; wdt:P31 ?cls .`
     : `${country(countryIso2)}
     ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
-    FILTER(?p0 >= ${minPopulation(countryIso2)})
-    ${TOWN_CLASSES}`;
-  return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
-       (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
+    FILTER(?p0 >= ${minPopulation(countryIso2)})`;
+  return `WITH {
+  SELECT DISTINCT ?city ?cls WHERE {
+    ${candidates}
+  }
+} AS %candidates
+WITH {
+  SELECT DISTINCT ?cls WHERE { INCLUDE %candidates . }
+} AS %classes
+WITH {
+  SELECT ?cls WHERE {
+    hint:SubQuery hint:optimizer "None" .
+    INCLUDE %classes .
+    ${TOWN_CLASSES}
+  }
+} AS %townClasses
 WITH {
   SELECT DISTINCT ?city WHERE {
-    ${towns}
+    INCLUDE %townClasses .
+    INCLUDE %candidates .
   }
-} AS %towns
+} AS %towns`;
+}
+
+/**
+ * The columns parseCities reads, for the towns `source` binds to ?city. Each town's details
+ * are grouped into one row: a town with several populations, coordinates and labels would
+ * otherwise multiply into hundreds of rows.
+ */
+function details(source: string, withs = ""): string {
+  return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
+       (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
+${withs}
 WHERE {
-  INCLUDE %towns .
+  ${source}
   ?city wdt:P1082 ?p ; wdt:P625 ?c .
   OPTIONAL { ?city rdfs:label ?alt . FILTER(LANG(?alt) IN (${LANGS.map((l) => `"${l}"`).join(", ")})) }
   OPTIONAL { ?v schema:about ?city ; schema:isPartOf <https://en.wikivoyage.org/> . }
@@ -143,6 +166,26 @@ WHERE {
   ${labelService}
 }
 GROUP BY ?city ?cityLabel`;
+}
+
+/** Towns and cities of one country, with their details, in one query. */
+export function citiesQuery(countryIso2: string, byPopulation = false): string {
+  return details("INCLUDE %towns .", towns(countryIso2, byPopulation));
+}
+
+/**
+ * The Wikidata ids of one country's towns and cities, without their details: for a country
+ * whose towns are too many to read with their details in one query.
+ */
+export function townIdsQuery(countryIso2: string): string {
+  return `SELECT ?city
+${towns(countryIso2, true)}
+WHERE { INCLUDE %towns . }`;
+}
+
+/** A batch of towns and cities by Wikidata id, with their details. */
+export function citiesByIdQuery(ids: string[]): string {
+  return details(`VALUES ?city { ${ids.map((id) => `wd:${id}`).join(" ")} }`);
 }
 
 /** Kinds of sight, by Wikidata class. UNESCO World Heritage sites are kept whatever their class. */
@@ -225,6 +268,23 @@ function url(v: string | undefined, host?: RegExp): string | undefined {
 const VOY = /^en\.wikivoyage\.org$/;
 const WP = /^en\.wikipedia\.org$/;
 
+/** Adds what the last fetch had for each missing country; returns the countries it had nothing for. */
+export function keepPrevious<T extends { countryIso2: string }>(missing: string[], into: T[], old: T[], what: string, log: (msg: string) => void): string[] {
+  return missing.filter((cc) => {
+    const kept = old.filter((x) => x.countryIso2 === cc);
+    into.push(...kept);
+    if (kept.length) log(`${cc}: ${kept.length} ${what} kept from the last fetch`);
+    return kept.length === 0;
+  });
+}
+
+/** Wikidata ids from townIdsQuery. */
+export function parseTownIds(result: unknown): string[] {
+  return bindings(result)
+    .map((b) => qid(b.city?.value))
+    .filter((id) => /^Q\d+$/.test(id));
+}
+
 /** Cities from citiesQuery; when an id repeats (two populations or coordinates), the largest wins. */
 export function parseCities(result: unknown, countryIso2: string): City[] {
   const byId = new Map<string, City>();
@@ -295,47 +355,84 @@ export function parseSights(result: unknown): Record<string, Sight[]> {
 
 // ---------------------------------------------------------------- railway stations
 
+/** Every item with an ISO 3166-1 code, dissolved ones too: the countries stations name. */
+export const COUNTRY_CODES_QUERY = `SELECT ?country ?iso2 WHERE { ?country wdt:P297 ?iso2 . }`;
+
 /**
- * Mainline railway stations of one country that are still open, with coordinates and
- * either a UIC code or a page on a Wikimedia project (which leaves out most tram and metro
- * stops). One query per country, run in the written order: every railway station on
- * Wikidata, then the country's, then their labels. Reading a large country's items first
- * timed out.
+ * Mainline railway stations worldwide that are still open, with their countries,
+ * coordinates and either a UIC code or a page on a Wikimedia project (which leaves out most
+ * tram and metro stops). One query reads every railway station on Wikidata, in the written
+ * order, in about half a minute. The countries' ISO codes and the labels are read by their
+ * own queries: reading the labels here, or the codes with the Netherlands' exception, took
+ * this one past the query service's one-minute limit.
  */
-export function stationsQuery(countryIso2: string): string {
-  return `SELECT ?station ?stationLabel ?iso2 ?coord
-WITH {
-  SELECT ?station (SAMPLE(?c) AS ?coord) WHERE {
-    hint:SubQuery hint:optimizer "None" .
-    ${country(countryIso2)}
-    ?station wdt:P31 wd:Q55488 .
-    ?station wdt:P17 ?country ; wdt:P625 ?c ; wikibase:sitelinks ?links .
-    FILTER NOT EXISTS { ?station wdt:P576 ?closed . }
-    FILTER NOT EXISTS { ?station wdt:P5817 wd:Q56556915 . }
-    FILTER NOT EXISTS { ?station wdt:P5817 wd:Q45382883 . }
-    FILTER(?links > 0 || EXISTS { ?station wdt:P954 ?uic . })
-  }
-  GROUP BY ?station
-} AS %stations
-WHERE {
-  INCLUDE %stations .
-  BIND("${countryIso2}" AS ?iso2)
+export const STATIONS_QUERY = `SELECT ?station ?country (SAMPLE(?c) AS ?coord) WHERE {
+  hint:Query hint:optimizer "None" .
+  ?station wdt:P31 wd:Q55488 .
+  ?station wdt:P17 ?country ; wdt:P625 ?c ; wikibase:sitelinks ?links .
+  FILTER NOT EXISTS { ?station wdt:P576 ?closed . }
+  FILTER NOT EXISTS { ?station wdt:P5817 wd:Q56556915 . }
+  FILTER NOT EXISTS { ?station wdt:P5817 wd:Q45382883 . }
+  FILTER(?links > 0 || EXISTS { ?station wdt:P954 ?uic . })
+}
+GROUP BY ?station ?country`;
+
+/** Labels of a batch of items. */
+export function labelsQuery(ids: string[]): string {
+  return `SELECT ?item ?itemLabel WHERE {
+  VALUES ?item { ${ids.map((id) => `wd:${id}`).join(" ")} }
   ${labelService}
 }`;
 }
 
-/** Stations from stationsQuery; a station listed twice keeps the first. */
-export function parseStations(result: unknown): Station[] {
-  const out: Station[] = [];
-  const seen = new Set<string>();
+/** A station before nameStations gives it its label. */
+type UnnamedStation = Omit<Station, "name">;
+
+/** Item → ISO code, from COUNTRY_CODES_QUERY, with the codes COUNTRY_ITEMS moves to another item. */
+export function parseCountryCodes(result: unknown): Map<string, string> {
+  const codes = new Map<string, string>();
+  for (const b of bindings(result)) {
+    const id = qid(b.country?.value);
+    const cc = b.iso2?.value ?? "";
+    if (/^Q\d+$/.test(id) && /^[A-Z]{2}$/.test(cc) && !(cc in COUNTRY_ITEMS)) codes.set(id, cc);
+  }
+  for (const [cc, id] of Object.entries(COUNTRY_ITEMS)) codes.set(id, cc);
+  return codes;
+}
+
+/**
+ * Stations from STATIONS_QUERY in these countries, country by country in their order, a
+ * station in several kept in the first. They are named by nameStations.
+ */
+export function parseStations(result: unknown, codes: Map<string, string>, countries: string[]): UnnamedStation[] {
+  const rank = new Map(countries.map((cc, i) => [cc, i]));
+  const best = new Map<string, { rank: number; station: UnnamedStation }>();
   for (const b of bindings(result)) {
     const id = qid(b.station?.value);
+    const cc = codes.get(qid(b.country?.value)) ?? "";
+    const r = rank.get(cc);
     const at = point(b.coord?.value);
-    const name = b.stationLabel?.value?.trim() ?? "";
-    const cc = b.iso2?.value?.toUpperCase() ?? "";
-    if (!/^Q\d+$/.test(id) || !at || !name || name === id || !/^[A-Z]{2}$/.test(cc) || seen.has(id)) continue;
-    seen.add(id);
-    out.push({ wikidata: id, name, countryIso2: cc, ...at });
+    if (!/^Q\d+$/.test(id) || r === undefined || !at || (best.get(id)?.rank ?? Infinity) <= r) continue;
+    best.set(id, { rank: r, station: { wikidata: id, countryIso2: cc, ...at } });
   }
-  return out;
+  return [...best.values()].sort((a, b) => a.rank - b.rank).map((s) => s.station);
+}
+
+/** Item → label, from labelsQuery; an item with no label in the languages above has none. */
+export function parseLabels(result: unknown): Map<string, string> {
+  const labels = new Map<string, string>();
+  for (const b of bindings(result)) {
+    const id = qid(b.item?.value);
+    const label = b.itemLabel?.value?.trim() ?? "";
+    if (label && label !== id) labels.set(id, label);
+  }
+  return labels;
+}
+
+/** Stations named by their labels, from parseLabels; a station without one is left out. */
+export function nameStations(stations: UnnamedStation[], labels: Map<string, string>): Station[] {
+  return stations.flatMap(({ wikidata, ...rest }) => {
+    const name = labels.get(wikidata);
+    return name ? [{ wikidata, name, ...rest }] : [];
+  });
 }
