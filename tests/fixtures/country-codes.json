@@ -1,0 +1,49 @@
+{
+ "head": {
+  "vars": []
+ },
+ "results": {
+  "bindings": [
+   {
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q142"
+    },
+    "iso2": {
+     "type": "literal",
+     "value": "FR"
+    }
+   },
+   {
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q39"
+    },
+    "iso2": {
+     "type": "literal",
+     "value": "CH"
+    }
+   },
+   {
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q17"
+    },
+    "iso2": {
+     "type": "literal",
+     "value": "JP"
+    }
+   },
+   {
+    "country": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q29999"
+    },
+    "iso2": {
+     "type": "literal",
+     "value": "NL"
+    }
+   }
+  ]
+ }
+}

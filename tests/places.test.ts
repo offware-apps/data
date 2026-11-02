@@ -2,13 +2,17 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PACK_MAX, buildFiles, placeIds, slug, type Place, type PlacesIndex } from "../src/places";
 import type { Catalog } from "../src/catalog";
-import { citiesByIdQuery, citiesQuery, keepPrevious, minPopulation, PARTS, parseCities, parseCountries, parseSights, parseStations, parseTownIds, point, sightsQuery, stationsQuery, townIdsQuery, type Raw } from "../src/wikidata";
+import { citiesByIdQuery, citiesQuery, keepPrevious, labelsQuery, minPopulation, nameStations, parseCities, parseCountries, parseCountryCodes, parseLabels, parseSights, parseStations, parseTownIds, point, sightsQuery, townIdsQuery, type Raw } from "../src/wikidata";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf-8"));
 
+const codes = parseCountryCodes(fixture("country-codes.json"));
+const stations = (countries: string[]) =>
+  nameStations(parseStations(fixture("stations.json"), codes, countries), parseLabels(fixture("station-labels.json")));
+
 const raw = (): Raw => {
   const cities = [...parseCities(fixture("cities-fr.json"), "FR"), ...parseCities(fixture("cities-es.json"), "ES")];
-  return { fetchedAt: "2026-10-12T00:00:00.000Z", cities, sights: parseSights(fixture("sights.json")), stations: parseStations(fixture("stations.json")) };
+  return { fetchedAt: "2026-10-12T00:00:00.000Z", cities, sights: parseSights(fixture("sights.json")), stations: stations(["FR", "JP"]) };
 };
 
 describe("Wikidata results", () => {
@@ -41,10 +45,21 @@ describe("Wikidata results", () => {
 
   it("reads countries and stations worldwide", () => {
     expect(parseCountries(fixture("countries.json"))).toEqual(["FR", "JP"]);
-    expect(parseStations(fixture("stations.json"))).toEqual([
+    expect(stations(["FR", "JP"])).toEqual([
       { wikidata: "Q745942", name: "Paris Gare de Lyon", countryIso2: "FR", lat: 48.8443, lon: 2.3733 },
       { wikidata: "Q801124", name: "Tokyo Station", countryIso2: "JP", lat: 35.6812, lon: 139.7671 },
     ]);
+  });
+
+  it("keeps a station in several countries in the first, and drops unlabelled ones", () => {
+    expect(stations(["CH", "FR", "JP", "NL"]).map((s) => `${s.countryIso2} ${s.name}`)).toEqual([
+      "CH Frontier",
+      "CH Border",
+      "FR Paris Gare de Lyon",
+      "JP Tokyo Station",
+      "NL Amsterdam Centraal",
+    ]);
+    expect(labelsQuery(["Q1", "Q2"])).toContain("VALUES ?item { wd:Q1 wd:Q2 }");
   });
 
   it("keeps smaller towns in Europe than elsewhere", () => {
@@ -63,14 +78,8 @@ describe("Wikidata results", () => {
   it("finds Dutch towns and stations by the country they name", () => {
     expect(citiesQuery("NL")).toContain("BIND(wd:Q55 AS ?country)");
     expect(citiesQuery("NL", true)).toContain("BIND(wd:Q55 AS ?country)");
-    expect(stationsQuery("NL")).toContain("BIND(wd:Q55 AS ?country)");
-    expect(stationsQuery("NL")).not.toContain("P297");
-  });
-
-  it("reads a large country in parts that cover every id once", () => {
-    expect(PARTS.join("").split("").sort().join("")).toBe("0123456789");
-    expect(stationsQuery("JP")).not.toContain("REGEX");
-    expect(stationsQuery("JP", "89")).toContain('FILTER(REGEX(STR(?station), "[89]$"))');
+    expect(codes.get("Q55")).toBe("NL");
+    expect(codes.has("Q29999")).toBe(false);
   });
 
   it("reads a large country's town ids alone, then their details by id", () => {

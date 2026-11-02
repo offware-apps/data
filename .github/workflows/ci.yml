@@ -42,8 +42,9 @@ jobs:
           du -sh public/v1 public/v1/*/*.json
           jq '.places | length' public/v1/places/index.json
           jq '.stations | length' public/v1/stations/railways.json
-      - name: Read Japan and the United States in parts
-        # Their towns and Japan's stations time out in a single query: check the parts find them.
+      - name: Read Japan and the United States in batches
+        # Their towns time out in a single query: check the batches find them, and the
+        # worldwide stations query finds Japan's.
         run: |
           npm run fetch -- JP US
           jq -e '[.cities[] | select(.countryIso2 == "JP")] | length > 500' data/raw/wikidata.json
