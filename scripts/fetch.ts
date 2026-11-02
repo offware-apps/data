@@ -45,6 +45,8 @@ const WHOLE_TRIES = Math.min(TRIES, 2);
 const PAUSE_MS = 1_000;
 /** Tiny territories time out now and then; more than this many missing countries fails the run. */
 const MAX_MISSING_COUNTRIES = 2;
+/** More countries than this kept from the last fetch means the query service or a query is broken: fail the run. */
+const MAX_KEPT_COUNTRIES = 10;
 /** Share of towns whose sights may be missing before the run fails. */
 const MAX_MISSING_SIGHTS = 0.01;
 
@@ -195,6 +197,8 @@ if (noSights.length) console.log(`[fetch] towns without sights: ${noSights.lengt
 if (
   noTowns.length > MAX_MISSING_COUNTRIES ||
   noStations.length > MAX_MISSING_COUNTRIES ||
+  missing.length > MAX_KEPT_COUNTRIES ||
+  missingStations.length > MAX_KEPT_COUNTRIES ||
   noSights.length > ids.length * MAX_MISSING_SIGHTS
 ) {
   console.error("[fetch] too much was left out to publish; nothing is published this run.");
