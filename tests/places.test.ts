@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PACK_MAX, buildFiles, placeIds, slug, type Place, type PlacesIndex } from "../src/places";
 import type { Catalog } from "../src/catalog";
-import { citiesQuery, minPopulation, PARTS, parseCities, parseCountries, parseSights, parseStations, point, sightsQuery, stationsQuery, type Raw } from "../src/wikidata";
+import { citiesByIdQuery, citiesQuery, minPopulation, PARTS, parseCities, parseCountries, parseSights, parseStations, parseTownIds, point, sightsQuery, stationsQuery, townIdsQuery, type Raw } from "../src/wikidata";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf-8"));
 
@@ -69,11 +69,21 @@ describe("Wikidata results", () => {
 
   it("reads a large country in parts that cover every id once", () => {
     expect(PARTS.join("").split("").sort().join("")).toBe("0123456789");
-    expect(citiesQuery("US")).not.toContain("REGEX");
-    expect(citiesQuery("US", true, "01")).toContain('FILTER(REGEX(STR(?city), "[01]$"))');
-    expect(citiesQuery("IT", false, "45")).toContain('FILTER(REGEX(STR(?city), "[45]$"))');
     expect(stationsQuery("JP")).not.toContain("REGEX");
     expect(stationsQuery("JP", "89")).toContain('FILTER(REGEX(STR(?station), "[89]$"))');
+  });
+
+  it("reads a large country's town ids alone, then their details by id", () => {
+    const ids = townIdsQuery("US");
+    expect(ids).toContain('wdt:P297 "US"');
+    expect(ids).toContain("?p0 >= 15000");
+    expect(ids).toContain("wd:Q15284");
+    // Every item with a population first, then the country's: the order light enough for the US.
+    expect(ids).toMatch(/wdt:P1082 \?p0 \.[\s\S]*wdt:P17 \?country/);
+    expect(ids).not.toContain("rdfs:label");
+    const result = { results: { bindings: [{ city: { value: "http://www.wikidata.org/entity/Q60" } }, { city: { value: "x" } }] } };
+    expect(parseTownIds(result)).toEqual(["Q60"]);
+    expect(citiesByIdQuery(["Q60", "Q65"])).toContain("VALUES ?city { wd:Q60 wd:Q65 }");
   });
 });
 

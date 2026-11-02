@@ -117,14 +117,12 @@ export function parseCountries(result: unknown): string[] {
 }
 
 /**
- * Towns and cities of one country with at least minPopulation() people, in named subqueries
- * the query service runs first and in order: the country's items with a population and
- * their classes, then which of those few classes are kinds of town (checked once per class,
- * not once per item, which made large countries time out), then the towns. Their details
- * are read last, once each: a town with several populations, coordinates and labels would
- * otherwise multiply into hundreds of rows.
+ * The towns and cities of one country with at least minPopulation() people, as a named
+ * subquery %towns, after others the query service runs first and in order: the country's
+ * items with a population and their classes, then which of those few classes are kinds of
+ * town (checked once per class, not once per item, which made large countries time out).
  */
-export function citiesQuery(countryIso2: string, byPopulation = false, digits?: string): string {
+function towns(countryIso2: string, byPopulation: boolean): string {
   // byPopulation: for countries with millions of items (Great Britain, the United States),
   // read every item with a population and keep the country's, in that order, rather than
   // read every item of the country. Slower for small countries, but lighter for large ones.
@@ -133,15 +131,11 @@ export function citiesQuery(countryIso2: string, byPopulation = false, digits?: 
     ${country(countryIso2)}
     ?city wdt:P1082 ?p0 .
     FILTER(?p0 >= ${minPopulation(countryIso2)})
-    ${part("city", digits)}
     ?city wdt:P17 ?country ; wdt:P31 ?cls .`
     : `${country(countryIso2)}
     ?city wdt:P17 ?country ; wdt:P1082 ?p0 ; wdt:P31 ?cls .
-    FILTER(?p0 >= ${minPopulation(countryIso2)})
-    ${part("city", digits)}`;
-  return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
-       (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
-WITH {
+    FILTER(?p0 >= ${minPopulation(countryIso2)})`;
+  return `WITH {
   SELECT DISTINCT ?city ?cls WHERE {
     ${candidates}
   }
@@ -161,9 +155,20 @@ WITH {
     INCLUDE %townClasses .
     INCLUDE %candidates .
   }
-} AS %towns
+} AS %towns`;
+}
+
+/**
+ * The columns parseCities reads, for the towns `source` binds to ?city. Each town's details
+ * are grouped into one row: a town with several populations, coordinates and labels would
+ * otherwise multiply into hundreds of rows.
+ */
+function details(source: string, withs = ""): string {
+  return `SELECT ?city ?cityLabel (MAX(?p) AS ?pop) (SAMPLE(?c) AS ?coord) (SAMPLE(?v) AS ?voy) (SAMPLE(?w) AS ?wp) (SAMPLE(?s) AS ?site)
+       (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?names)
+${withs}
 WHERE {
-  INCLUDE %towns .
+  ${source}
   ?city wdt:P1082 ?p ; wdt:P625 ?c .
   OPTIONAL { ?city rdfs:label ?alt . FILTER(LANG(?alt) IN (${LANGS.map((l) => `"${l}"`).join(", ")})) }
   OPTIONAL { ?v schema:about ?city ; schema:isPartOf <https://en.wikivoyage.org/> . }
@@ -172,6 +177,26 @@ WHERE {
   ${labelService}
 }
 GROUP BY ?city ?cityLabel`;
+}
+
+/** Towns and cities of one country, with their details, in one query. */
+export function citiesQuery(countryIso2: string, byPopulation = false): string {
+  return details("INCLUDE %towns .", towns(countryIso2, byPopulation));
+}
+
+/**
+ * The Wikidata ids of one country's towns and cities, without their details: for a country
+ * whose towns are too many to read with their details in one query.
+ */
+export function townIdsQuery(countryIso2: string): string {
+  return `SELECT ?city
+${towns(countryIso2, true)}
+WHERE { INCLUDE %towns . }`;
+}
+
+/** A batch of towns and cities by Wikidata id, with their details. */
+export function citiesByIdQuery(ids: string[]): string {
+  return details(`VALUES ?city { ${ids.map((id) => `wd:${id}`).join(" ")} }`);
 }
 
 /** Kinds of sight, by Wikidata class. UNESCO World Heritage sites are kept whatever their class. */
@@ -253,6 +278,13 @@ function url(v: string | undefined, host?: RegExp): string | undefined {
 
 const VOY = /^en\.wikivoyage\.org$/;
 const WP = /^en\.wikipedia\.org$/;
+
+/** Wikidata ids from townIdsQuery. */
+export function parseTownIds(result: unknown): string[] {
+  return bindings(result)
+    .map((b) => qid(b.city?.value))
+    .filter((id) => /^Q\d+$/.test(id));
+}
 
 /** Cities from citiesQuery; when an id repeats (two populations or coordinates), the largest wins. */
 export function parseCities(result: unknown, countryIso2: string): City[] {

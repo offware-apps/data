@@ -31,9 +31,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Fetch three countries from Wikidata
-        # Great Britain and the United States are the heaviest countries for the time limit.
-        run: npm run fetch -- MC GB US
+      - name: Fetch two countries from Wikidata
+        # Great Britain is the heaviest country read in one query.
+        run: npm run fetch -- MC GB
         env:
           FETCH_TRIES: "1"
       - run: npm run build
@@ -42,11 +42,13 @@ jobs:
           du -sh public/v1 public/v1/*/*.json
           jq '.places | length' public/v1/places/index.json
           jq '.stations | length' public/v1/stations/railways.json
-      - name: Read Japan in parts
-        # Japan's towns and stations once timed out in a single query: check the parts find them.
+      - name: Read Japan and the United States in parts
+        # Their towns and Japan's stations time out in a single query: check the parts find them.
         run: |
-          npm run fetch -- JP
-          jq -e '(.cities | length) > 500 and (.stations | length) > 1000' data/raw/wikidata.json
+          npm run fetch -- JP US
+          jq -e '[.cities[] | select(.countryIso2 == "JP")] | length > 500' data/raw/wikidata.json
+          jq -e '[.cities[] | select(.countryIso2 == "US")] | length > 5000' data/raw/wikidata.json
+          jq -e '[.stations[] | select(.countryIso2 == "JP")] | length > 1000' data/raw/wikidata.json
         env:
           FETCH_TRIES: "2"
           FETCH_IN_PARTS: "1"

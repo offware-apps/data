@@ -3,23 +3,28 @@
  * data/raw/wikidata.json, which is committed: a full fetch takes about two hours, so it runs
  * monthly in its own workflow and the publish workflow builds from the saved copy. One
  * query per country for towns and for stations, then the sights in batches of cities,
- * slowly enough to respect the query service's limits. A country whose query fails is read
- * in parts, and a batch of sights that fails in smaller batches. A country that still can't
- * be read keeps what the last fetch had for it; whatever is left is left out and named.
+ * slowly enough to respect the query service's limits. A country whose query fails has its
+ * town ids read first, then their details in batches, and its stations read in parts; a
+ * batch of sights that fails is read in smaller batches. A country that still can't be read
+ * keeps what the last fetch had for it; whatever is left is left out and named.
  * Run: npm run fetch [-- FR DE]   (default: every country)
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   COUNTRIES_QUERY,
+  citiesByIdQuery,
   citiesQuery,
   parseCities,
   parseCountries,
   parseSights,
   parseStations,
+  parseTownIds,
   PARTS,
   sightsQuery,
   stationsQuery,
+  townIdsQuery,
+  type City,
   type Raw,
 } from "../src/wikidata";
 
@@ -28,11 +33,13 @@ const ENDPOINT = "https://query.wikidata.org/sparql";
 const USER_AGENT = "offware-data/0.1 (https://github.com/offware-apps/data)";
 const OUT = resolve("data/raw/wikidata.json");
 const BATCH = 20;
+/** Towns whose details are read in one query, for a country read in batches. */
+const TOWN_BATCH = 500;
 /** A failed batch of sights is retried this many cities at a time. */
 const SMALL_BATCH = 4;
 /** FETCH_TRIES=1 makes a test run fail fast. */
 const TRIES = Number(process.env.FETCH_TRIES) || 3;
-/** Tries of a country's whole query before it is read in parts. */
+/** Tries of a country's whole query before it is read in parts or batches. */
 const WHOLE_TRIES = Math.min(TRIES, 2);
 const PAUSE_MS = 1_000;
 /** Tiny territories time out now and then; more than this many missing countries fails the run. */
@@ -79,7 +86,7 @@ const raw: Raw = { fetchedAt: new Date().toISOString(), cities: [], sights: {}, 
 const all = countries.length ? countries : parseCountries(await sparql(COUNTRIES_QUERY));
 log(`${all.length} countries`);
 
-/** FETCH_IN_PARTS=1 skips a country's whole query, to test reading in parts. */
+/** FETCH_IN_PARTS=1 skips a country's whole query, to test reading in parts and batches. */
 const whole = (query: string, tries: number): Promise<unknown> =>
   process.env.FETCH_IN_PARTS === "1" ? Promise.reject(new Error("read in parts")) : sparql(query, tries);
 
@@ -90,6 +97,18 @@ async function inParts<T>(what: string, query: (digits: string) => string, parse
   for (const digits of PARTS) {
     await sleep(PAUSE_MS);
     out.push(...parse(await sparql(query(digits))));
+  }
+  return out;
+}
+
+/** A country with too many towns for one query: their ids first, then their details in batches. */
+async function townsInBatches(cc: string): Promise<City[]> {
+  const ids = parseTownIds(await sparql(townIdsQuery(cc)));
+  log(`${cc} towns: reading ${ids.length} in batches of ${TOWN_BATCH}`);
+  const out: City[] = [];
+  for (let i = 0; i < ids.length; i += TOWN_BATCH) {
+    await sleep(PAUSE_MS);
+    out.push(...parseCities(await sparql(citiesByIdQuery(ids.slice(i, i + TOWN_BATCH))), cc));
   }
   return out;
 }
@@ -111,11 +130,11 @@ const missing: string[] = [];
 for (const cc of all) {
   try {
     // The quick way first; a country too large for it is read the slow, sure way, and in
-    // parts when even that times out.
+    // batches when even that times out.
     const cities = await whole(citiesQuery(cc), 1)
       .catch(() => whole(citiesQuery(cc, true), WHOLE_TRIES))
       .then((result) => parseCities(result, cc))
-      .catch(() => inParts(`${cc} towns`, (digits) => citiesQuery(cc, true, digits), (result) => parseCities(result, cc)));
+      .catch(() => townsInBatches(cc));
     raw.cities.push(...cities);
     log(`${cc}: ${cities.length} towns and cities`);
   } catch (err) {
