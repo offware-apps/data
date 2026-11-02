@@ -15,6 +15,7 @@ import {
   COUNTRIES_QUERY,
   citiesByIdQuery,
   citiesQuery,
+  keepPrevious,
   parseCities,
   parseCountries,
   parseSights,
@@ -116,16 +117,6 @@ async function townsInBatches(cc: string): Promise<City[]> {
 /** The last fetch, committed: a country this run can't read keeps what it had there. */
 const previous = existsSync(OUT) ? (JSON.parse(readFileSync(OUT, "utf-8")) as Raw) : null;
 
-/** Adds what the last fetch had for each missing country; returns the countries it had nothing for. */
-function keepPrevious<T extends { countryIso2: string }>(missing: string[], into: T[], old: T[], what: string): string[] {
-  return missing.filter((cc) => {
-    const kept = old.filter((x) => x.countryIso2 === cc);
-    into.push(...kept);
-    if (kept.length) log(`${cc}: ${kept.length} ${what} kept from the last fetch`);
-    return kept.length === 0;
-  });
-}
-
 const missing: string[] = [];
 for (const cc of all) {
   try {
@@ -144,7 +135,7 @@ for (const cc of all) {
   await sleep(PAUSE_MS);
 }
 if (raw.cities.length === 0) throw new Error("no town or city could be fetched from Wikidata");
-const noTowns = keepPrevious(missing, raw.cities, previous?.cities ?? [], "towns and cities");
+const noTowns = keepPrevious(missing, raw.cities, previous?.cities ?? [], "towns and cities", log);
 
 const missingStations: string[] = [];
 const seen = new Set<string>();
@@ -163,7 +154,7 @@ for (const cc of all) {
   }
   await sleep(PAUSE_MS);
 }
-const noStations = keepPrevious(missingStations, raw.stations, (previous?.stations ?? []).filter((s) => !seen.has(s.wikidata)), "railway stations");
+const noStations = keepPrevious(missingStations, raw.stations, (previous?.stations ?? []).filter((s) => !seen.has(s.wikidata)), "railway stations", log);
 log(`${raw.stations.length} railway stations`);
 
 /** Sights of a batch of towns; a batch that fails is tried again a few towns at a time. */

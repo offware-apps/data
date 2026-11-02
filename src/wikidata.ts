@@ -279,6 +279,16 @@ function url(v: string | undefined, host?: RegExp): string | undefined {
 const VOY = /^en\.wikivoyage\.org$/;
 const WP = /^en\.wikipedia\.org$/;
 
+/** Adds what the last fetch had for each missing country; returns the countries it had nothing for. */
+export function keepPrevious<T extends { countryIso2: string }>(missing: string[], into: T[], old: T[], what: string, log: (msg: string) => void): string[] {
+  return missing.filter((cc) => {
+    const kept = old.filter((x) => x.countryIso2 === cc);
+    into.push(...kept);
+    if (kept.length) log(`${cc}: ${kept.length} ${what} kept from the last fetch`);
+    return kept.length === 0;
+  });
+}
+
 /** Wikidata ids from townIdsQuery. */
 export function parseTownIds(result: unknown): string[] {
   return bindings(result)

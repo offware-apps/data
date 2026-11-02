@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PACK_MAX, buildFiles, placeIds, slug, type Place, type PlacesIndex } from "../src/places";
 import type { Catalog } from "../src/catalog";
-import { citiesByIdQuery, citiesQuery, minPopulation, PARTS, parseCities, parseCountries, parseSights, parseStations, parseTownIds, point, sightsQuery, stationsQuery, townIdsQuery, type Raw } from "../src/wikidata";
+import { citiesByIdQuery, citiesQuery, keepPrevious, minPopulation, PARTS, parseCities, parseCountries, parseSights, parseStations, parseTownIds, point, sightsQuery, stationsQuery, townIdsQuery, type Raw } from "../src/wikidata";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf-8"));
 
@@ -84,6 +84,13 @@ describe("Wikidata results", () => {
     const result = { results: { bindings: [{ city: { value: "http://www.wikidata.org/entity/Q60" } }, { city: { value: "x" } }] } };
     expect(parseTownIds(result)).toEqual(["Q60"]);
     expect(citiesByIdQuery(["Q60", "Q65"])).toContain("VALUES ?city { wd:Q60 wd:Q65 }");
+  });
+
+  it("keeps the last fetch's data for a country this run missed, and names the ones it had none for", () => {
+    const old = [{ countryIso2: "IT", id: 1 }, { countryIso2: "US", id: 2 }];
+    const into: { countryIso2: string; id: number }[] = [];
+    expect(keepPrevious(["IT", "JP"], into, old, "towns", () => {})).toEqual(["JP"]);
+    expect(into.map((x) => x.id)).toEqual([1]);
   });
 });
 
