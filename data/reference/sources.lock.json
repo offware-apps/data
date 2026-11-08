@@ -6,8 +6,8 @@
   },
   "unesco": {
     "url": "https://data.unesco.org/api/explore/v2.1/catalog/datasets/whc001/exports/json?select=id_no,name_en,iso_codes,category,coordinates",
-    "sha256": "aaa9df5d54172ae39343760a25402b3eadbdb352dd4f81a6afdfe714a7e31914",
-    "modified": "2026-10-26T11:25:49+00:00"
+    "sha256": "88ef4a517cf34b3ba90875fe56eefbdb26cf28313a4797b592dee3f14d34e0c3",
+    "modified": "2026-11-08T03:07:39+00:00"
   },
   "geonames-cities": {
     "url": "https://download.geonames.org/export/dump/cities1000.zip",
